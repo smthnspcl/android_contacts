@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">contacts</string>
+    <string name="settings">settings</string>
+    <string name="decrypt">decrypt</string>
+    <string name="encrypt">encrypt</string>
+    <string name="do_not_encrypt">don\'t encrypt</string>
+    <string name="password">password</string>
+    <string name="generate">generate</string>
+    <string name="call">call</string>
+    <string name="sms">sms</string>
+    <string name="first">first </string>
+    <string name="middle">middle</string>
+    <string name="last">last</string>
+    <string name="name">name</string>
+    <string name="birthday">birthday</string>
+    <string name="street">street</string>
+    <string name="hnr">hnr</string>
+    <string name="house_number">house number</string>
+    <string name="house_nr">house nr</string>
+    <string name="postal_code">postal code</string>
+    <string name="postal">postal</string>
+    <string name="city">city</string>
+    <string name="notes">notes</string>
+    <string name="delete">delete</string>
+    <string name="edit">edit</string>
+</resources>
