@@ -17,6 +17,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
 import butterknife.ButterKnife;
+import io.eberlein.contacts.dialogs.AddressDialog;
 import io.eberlein.contacts.dialogs.ContactDialog;
 import io.eberlein.contacts.dialogs.DeleteContactDialog;
 import io.eberlein.contacts.objects.Contact;
@@ -24,6 +25,8 @@ import io.eberlein.contacts.objects.Settings;
 import io.eberlein.contacts.objects.events.EventAddContact;
 import io.eberlein.contacts.objects.events.EventContactSelected;
 import io.eberlein.contacts.objects.events.EventDeleteContact;
+import io.eberlein.contacts.objects.events.EventEditAddress;
+import io.eberlein.contacts.objects.events.EventEditContact;
 import io.eberlein.contacts.objects.events.EventEncryptionDone;
 import io.eberlein.contacts.ui.FragmentContacts;
 import io.eberlein.contacts.ui.FragmentDecrypt;
@@ -85,6 +88,16 @@ public class MainActivity extends FragmentActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventDeleteContact(EventDeleteContact e){
         new DeleteContactDialog(this, e.getObject()).build();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventEditContact(EventEditContact e){
+        new ContactDialog(this, e.getObject());
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventEditAddress(EventEditAddress e){
+        new AddressDialog(this, e.getObject());
     }
 
     private void initDB(String password){

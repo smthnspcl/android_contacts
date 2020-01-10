@@ -18,6 +18,8 @@ import butterknife.OnLongClick;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.objects.Address;
 import io.eberlein.contacts.objects.events.EventAddressSelected;
+import io.eberlein.contacts.objects.events.EventDeleteAddress;
+import io.eberlein.contacts.objects.events.EventEditAddress;
 import io.realm.OrderedRealmCollection;
 import io.realm.RealmRecyclerViewAdapter;
 
@@ -39,6 +41,16 @@ public class AddressAdapter extends RealmRecyclerViewAdapter<Address, AddressAda
         void onClick(){
             if(extraMenuOpen) closeExtraMenu();
             else EventBus.getDefault().post(new EventAddressSelected(address));
+        }
+
+        @OnClick(R.id.btn_edit)
+        void onBtnEditClicked(){
+            EventBus.getDefault().post(new EventEditAddress(address));
+        }
+
+        @OnClick(R.id.btn_delete)
+        void onBtnDeleteClicked(){
+            EventBus.getDefault().post(new EventDeleteAddress(address));
         }
 
         @OnLongClick
