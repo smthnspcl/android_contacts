@@ -19,7 +19,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -35,9 +34,11 @@ import io.realm.Realm;
 
 
 public class FragmentSync extends Fragment {
+    private static final String SERVICE_NAME = "contactSync";
+    private boolean registrationListenerRegistered = false;
     private Realm realm;
     private ServerSocket serverSocket;
-    private String serviceName;
+    private NsdServiceInfo localDevice;
     private List<NsdServiceInfo> remoteDevices;
     private VHAdapter<NsdServiceInfo, VHNsdServiceInfo> adapter;
     private NsdManager nsdManager;
@@ -60,7 +61,7 @@ public class FragmentSync extends Fragment {
 
         @Override
         public void onServiceResolved(NsdServiceInfo serviceInfo) {
-            if (serviceInfo.getServiceName().equals(serviceName)) return;
+            if (serviceInfo.getServiceName().equals(localDevice.getServiceName())) return;
             remoteDevices.add(serviceInfo);
             adapter.notifyDataSetChanged();
         }
@@ -86,14 +87,13 @@ public class FragmentSync extends Fragment {
 
         @Override
         public void onDiscoveryStopped(String serviceType) {
-
+            nsdManager.discoverServices(serviceType, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
         }
 
         @Override
         public void onServiceFound(NsdServiceInfo service) {
-            if (service.getServiceName().contains(serviceName)) {
-                nsdManager.resolveService(service, resolveListener);
-            }
+            if (service.getServiceName().equals(localDevice.getServiceName())) return;
+            if (service.getServiceName().contains(SERVICE_NAME)) nsdManager.resolveService(service, resolveListener);
         }
 
         @Override
@@ -105,10 +105,7 @@ public class FragmentSync extends Fragment {
     private NsdManager.RegistrationListener registrationListener = new NsdManager.RegistrationListener() {
         @Override
         public void onServiceRegistered(NsdServiceInfo si) {
-            // Save the service name. Android may have changed it in order to
-            // resolve a conflict, so update the name you initially requested
-            // with the name Android actually used.
-            serviceName = si.getServiceName();
+            localDevice = si;
         }
 
         @Override
@@ -149,10 +146,13 @@ public class FragmentSync extends Fragment {
         try {
             serverSocket = new ServerSocket(0);
             NsdServiceInfo si = new NsdServiceInfo();
-            si.setServiceName("contactSync:" + getHostName(String.valueOf(new Random().nextInt())));
+            si.setServiceName(SERVICE_NAME + ":" + getHostName(String.valueOf(new Random().nextInt())));
             si.setServiceType("_nsdcontactsync._tcp");
             si.setPort(serverSocket.getLocalPort());
             nsdManager.registerService(si, NsdManager.PROTOCOL_DNS_SD, registrationListener);
+            nsdManager.discoverServices(si.getServiceType(), NsdManager.PROTOCOL_DNS_SD, discoveryListener);
+            registrationListenerRegistered = true;
+            Toast.makeText(getContext(), "registered service '" + si.getServiceName() + "'", Toast.LENGTH_LONG).show();
         } catch (IOException e){
             e.printStackTrace();
             Toast.makeText(getContext(), "could not create server socket", Toast.LENGTH_LONG).show();
@@ -160,7 +160,7 @@ public class FragmentSync extends Fragment {
     }
 
     private void unregisterService(){
-        if(registrationListener != null) nsdManager.unregisterService(registrationListener);
+        if(registrationListenerRegistered) nsdManager.unregisterService(registrationListener);
     }
 
     @Override
