@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"/>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler"
+        android:id="@+id/rv_remote_devices"
         android:layout_below="@id/cb_discoverable"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>

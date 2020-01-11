@@ -1,5 +1,7 @@
 package io.eberlein.contacts;
 
+import android.content.Context;
+import android.net.nsd.NsdManager;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -177,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host, true);
         } else if(id == R.id.action_sync) {
-            FragmentUtils.add(getSupportFragmentManager(), new FragmentSync(realm), R.id.fragment_host, true);
+            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(realm, (NsdManager) getSystemService(Context.NSD_SERVICE)), R.id.fragment_host, true);
         }
 
         return super.onOptionsItemSelected(item);

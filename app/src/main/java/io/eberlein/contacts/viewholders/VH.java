@@ -96,7 +96,7 @@ public class VH<T> extends RecyclerView.ViewHolder {
         onSetObject();
     }
 
-    public static <T extends RealmObject, V extends VH<T>> V create(Class<V> cls, View v){
+    public static <T, V extends VH<T>> V create(Class<V> cls, View v){
         try {
             return cls.getConstructor(View.class).newInstance(v);
         } catch (IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException e){

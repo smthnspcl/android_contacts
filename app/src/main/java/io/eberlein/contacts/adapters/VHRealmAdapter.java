@@ -4,21 +4,20 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-
-import java.util.List;
 
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.viewholders.VH;
+import io.realm.OrderedRealmCollection;
+import io.realm.RealmObject;
+import io.realm.RealmRecyclerViewAdapter;
 
 
-public class VHAdapter<T, V extends VH<T>> extends RecyclerView.Adapter<V> {
+public class VHRealmAdapter<T extends RealmObject, V extends VH<T>> extends RealmRecyclerViewAdapter<T, V> {
     private Class<V> cls;
-    private List<T> data;
 
-    public VHAdapter(Class<V> cls, List<T> data){
+    public VHRealmAdapter(Class<V> cls, OrderedRealmCollection<T> data){
+        super(data, true);
         this.cls = cls;
-        this.data = data;
     }
 
     @NonNull
@@ -28,12 +27,7 @@ public class VHAdapter<T, V extends VH<T>> extends RecyclerView.Adapter<V> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull V holder, int position) {
-        holder.setObject(data.get(position));
-    }
-
-    @Override
-    public int getItemCount() {
-        return data.size();
+    public void onBindViewHolder(@NonNull VH holder, int position) {
+        holder.setObject(getItem(position));
     }
 }

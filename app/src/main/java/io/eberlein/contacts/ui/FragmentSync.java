@@ -1,6 +1,5 @@
 package io.eberlein.contacts.ui;
 
-import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
@@ -8,12 +7,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -24,7 +24,9 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnCheckedChanged;
 import io.eberlein.contacts.R;
+import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.objects.Settings;
+import io.eberlein.contacts.viewholders.VHNsdServiceInfo;
 import io.realm.Realm;
 
 
@@ -33,9 +35,11 @@ public class FragmentSync extends Fragment {
     private ServerSocket serverSocket;
     private String serviceName;
     private List<NsdServiceInfo> remoteDevices;
+    private VHAdapter<NsdServiceInfo, VHNsdServiceInfo> adapter;
     private NsdManager nsdManager;
 
     @BindView(R.id.cb_discoverable) CheckBox cbDiscoverable;
+    @BindView(R.id.rv_remote_devices) RecyclerView recyclerRemoteDevices;
 
     @OnCheckedChanged(R.id.cb_discoverable)
     void onSwitchEnableClicked(){
@@ -54,6 +58,7 @@ public class FragmentSync extends Fragment {
         public void onServiceResolved(NsdServiceInfo serviceInfo) {
             if (serviceInfo.getServiceName().equals(serviceName)) return;
             remoteDevices.add(serviceInfo);
+            adapter.notifyDataSetChanged();
         }
     };
 
@@ -120,10 +125,10 @@ public class FragmentSync extends Fragment {
     };
 
 
-    public FragmentSync(Realm realm){
+    public FragmentSync(Realm realm, NsdManager nsdManager){
         this.remoteDevices = new ArrayList<>();
         this.realm = realm;
-        this.nsdManager = (NsdManager) getActivity().getSystemService(Context.NSD_SERVICE);
+        this.nsdManager = nsdManager;
     }
 
     private void registerService(){
@@ -161,6 +166,9 @@ public class FragmentSync extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_sync, container, false);
         ButterKnife.bind(this, v);
+        recyclerRemoteDevices.setLayoutManager(new LinearLayoutManager(getContext()));
+        adapter = new VHAdapter<NsdServiceInfo, VHNsdServiceInfo>(VHNsdServiceInfo.class, remoteDevices);
+        recyclerRemoteDevices.setAdapter(adapter);
         return v;
     }
 }
