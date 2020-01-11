@@ -2,6 +2,8 @@ package io.eberlein.contacts;
 
 import android.os.Bundle;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.FragmentActivity;
 
 import android.view.Menu;
@@ -16,6 +18,8 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
+
+import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.eberlein.contacts.dialogs.AddressDialog;
 import io.eberlein.contacts.dialogs.ContactDialog;
@@ -44,8 +48,10 @@ import io.realm.RealmConfiguration;
 // todo add network sync
 
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends AppCompatActivity {
     private Realm realm;
+
+    @BindView(R.id.toolbar) Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +59,7 @@ public class MainActivity extends FragmentActivity {
         Realm.init(this);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        setSupportActionBar(toolbar);
     }
 
     @Override
@@ -168,11 +175,20 @@ public class MainActivity extends FragmentActivity {
         int id = item.getItemId();
 
         if (id == R.id.action_settings) {
-            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host);
+            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host, true);
         } else if(id == R.id.action_sync) {
-            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(realm), R.id.fragment_host);
+            FragmentUtils.add(getSupportFragmentManager(), new FragmentSync(realm), R.id.fragment_host, true);
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(FragmentUtils.getFragmentsInStack(getSupportFragmentManager()).size() > 0){
+            FragmentUtils.pop(getSupportFragmentManager());
+        } else {
+            super.onBackPressed();
+        }
     }
 }
