@@ -2,6 +2,7 @@ package io.eberlein.contacts.ui;
 
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,9 +17,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -131,11 +135,21 @@ public class FragmentSync extends Fragment {
         this.nsdManager = nsdManager;
     }
 
+    private static String getHostName(String defValue) {
+        try {
+            Method getString = Build.class.getDeclaredMethod("getString", String.class);
+            getString.setAccessible(true);
+            return getString.invoke(null, "net.hostname").toString();
+        } catch (Exception ex) {
+            return defValue;
+        }
+    }
+
     private void registerService(){
         try {
             serverSocket = new ServerSocket(0);
             NsdServiceInfo si = new NsdServiceInfo();
-            si.setServiceName("contactSync");
+            si.setServiceName("contactSync:" + getHostName(String.valueOf(new Random().nextInt())));
             si.setServiceType("_nsdcontactsync._tcp");
             si.setPort(serverSocket.getLocalPort());
             nsdManager.registerService(si, NsdManager.PROTOCOL_DNS_SD, registrationListener);
