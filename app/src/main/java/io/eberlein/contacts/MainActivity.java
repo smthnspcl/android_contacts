@@ -2,11 +2,11 @@ package io.eberlein.contacts;
 
 import android.content.Context;
 import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.fragment.app.FragmentActivity;
 
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,6 +27,7 @@ import io.eberlein.contacts.dialogs.AddressDialog;
 import io.eberlein.contacts.dialogs.ContactDialog;
 import io.eberlein.contacts.dialogs.EmailAddressDialog;
 import io.eberlein.contacts.dialogs.NoteDialog;
+import io.eberlein.contacts.dialogs.NsdServiceInfoDialog;
 import io.eberlein.contacts.dialogs.PhoneNumberDialog;
 import io.eberlein.contacts.objects.Address;
 import io.eberlein.contacts.objects.Contact;
@@ -112,6 +113,11 @@ public class MainActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogNote(EventOpenDialog<Note> e){
         new NoteDialog(this, e.getObject()).show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventOpenDialogSync(EventOpenDialog<NsdServiceInfo> e){
+        new NsdServiceInfoDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

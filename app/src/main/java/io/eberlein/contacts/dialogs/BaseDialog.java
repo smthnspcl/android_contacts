@@ -3,12 +3,10 @@ package io.eberlein.contacts.dialogs;
 import android.app.AlertDialog;
 import android.content.Context;
 
-import io.realm.RealmObject;
-
-public class BaseDialog<T extends RealmObject> {
+public class BaseDialog<T> {
     private Context context;
     private T object;
-    private AlertDialog.Builder builder;
+    AlertDialog.Builder builder;
 
     public BaseDialog(Context context, T object, int layout){
         this.context = context;

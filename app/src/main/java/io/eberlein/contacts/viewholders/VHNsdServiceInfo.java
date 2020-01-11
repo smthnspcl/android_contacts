@@ -3,9 +3,19 @@ package io.eberlein.contacts.viewholders;
 import android.net.nsd.NsdServiceInfo;
 import android.view.View;
 
+import org.greenrobot.eventbus.EventBus;
+
+import butterknife.OnClick;
+import io.eberlein.contacts.objects.events.EventOpenDialog;
+
 public class VHNsdServiceInfo extends VH<NsdServiceInfo> {
     public VHNsdServiceInfo(View v){
         super(v);
+    }
+
+    @OnClick
+    void onClick(){
+        EventBus.getDefault().post(new EventOpenDialog<>(object));
     }
 
     @Override

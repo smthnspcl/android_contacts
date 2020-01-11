@@ -177,8 +177,10 @@ public class FragmentSync extends Fragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventWithServiceObject(EventWithObject<NsdServiceInfo> e){
-        remoteDevices.add(e.getObject());
-        adapter.notifyDataSetChanged();
+        if(!remoteDevices.contains(e.getObject())){
+            remoteDevices.add(e.getObject());
+            adapter.notifyDataSetChanged();
+        }
     }
 
     @Override
