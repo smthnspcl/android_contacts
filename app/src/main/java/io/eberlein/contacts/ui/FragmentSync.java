@@ -7,7 +7,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -15,6 +15,10 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -25,10 +29,11 @@ import java.util.Random;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.OnCheckedChanged;
+import butterknife.OnClick;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.objects.Settings;
+import io.eberlein.contacts.objects.events.EventWithObject;
 import io.eberlein.contacts.viewholders.VHNsdServiceInfo;
 import io.realm.Realm;
 
@@ -43,13 +48,13 @@ public class FragmentSync extends Fragment {
     private VHAdapter<NsdServiceInfo, VHNsdServiceInfo> adapter;
     private NsdManager nsdManager;
 
-    @BindView(R.id.cb_discoverable) CheckBox cbDiscoverable;
     @BindView(R.id.rv_remote_devices) RecyclerView recyclerRemoteDevices;
+    @BindView(R.id.btn_discover) Button discover;
 
-    @OnCheckedChanged(R.id.cb_discoverable)
+    @OnClick(R.id.btn_discover)
     void onSwitchEnableClicked(){
-        if(cbDiscoverable.isChecked()) registerService();
-        else unregisterService();
+        nsdManager.discoverServices(SERVICE_NAME, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
+        discover.setClickable(false);
     }
 
     private NsdManager.ResolveListener resolveListener = new NsdManager.ResolveListener() {
@@ -62,8 +67,7 @@ public class FragmentSync extends Fragment {
         @Override
         public void onServiceResolved(NsdServiceInfo serviceInfo) {
             if (serviceInfo.getServiceName().equals(localDevice.getServiceName())) return;
-            remoteDevices.add(serviceInfo);
-            adapter.notifyDataSetChanged();
+            EventBus.getDefault().post(new EventWithObject<>(serviceInfo));
         }
     };
 
@@ -83,10 +87,12 @@ public class FragmentSync extends Fragment {
         @Override
         public void onDiscoveryStarted(String serviceType) {
             Toast.makeText(getContext(), "discovery started", Toast.LENGTH_LONG).show();
+            discover.setClickable(false);
         }
 
         @Override
         public void onDiscoveryStopped(String serviceType) {
+            discover.setClickable(true);
             nsdManager.discoverServices(serviceType, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
         }
 
@@ -145,14 +151,14 @@ public class FragmentSync extends Fragment {
     private void registerService(){
         try {
             serverSocket = new ServerSocket(0);
-            NsdServiceInfo si = new NsdServiceInfo();
-            si.setServiceName(SERVICE_NAME + ":" + getHostName(String.valueOf(new Random().nextInt())));
-            si.setServiceType("_nsdcontactsync._tcp");
-            si.setPort(serverSocket.getLocalPort());
-            nsdManager.registerService(si, NsdManager.PROTOCOL_DNS_SD, registrationListener);
-            nsdManager.discoverServices(si.getServiceType(), NsdManager.PROTOCOL_DNS_SD, discoveryListener);
+            localDevice= new NsdServiceInfo();
+            localDevice.setServiceName(SERVICE_NAME + ":" + getHostName(String.valueOf(new Random().nextInt())));
+            localDevice.setServiceType("_nsdcontactsync._tcp");
+            localDevice.setPort(serverSocket.getLocalPort());
+            nsdManager.registerService(localDevice, NsdManager.PROTOCOL_DNS_SD, registrationListener);
+            nsdManager.discoverServices(localDevice.getServiceType(), NsdManager.PROTOCOL_DNS_SD, discoveryListener);
             registrationListenerRegistered = true;
-            Toast.makeText(getContext(), "registered service '" + si.getServiceName() + "'", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "registered service '" + localDevice.getServiceName() + "'", Toast.LENGTH_LONG).show();
         } catch (IOException e){
             e.printStackTrace();
             Toast.makeText(getContext(), "could not create server socket", Toast.LENGTH_LONG).show();
@@ -169,9 +175,23 @@ public class FragmentSync extends Fragment {
         if(realm.where(Settings.class).findFirst().isDiscoverable()) registerService();
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventWithServiceObject(EventWithObject<NsdServiceInfo> e){
+        remoteDevices.add(e.getObject());
+        adapter.notifyDataSetChanged();
+    }
+
     @Override
-    public void onDestroy() {
-        super.onDestroy();
+    public void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
+        registerService();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
         unregisterService();
     }
 

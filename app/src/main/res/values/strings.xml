@@ -24,7 +24,7 @@
     <string name="delete">delete</string>
     <string name="edit">edit</string>
     <string name="sync">sync</string>
-    <string name="discoverable">discoverable</string>
+    <string name="discover">discover</string>
     <string name="show">show</string>
     <string name="addresses">addresses</string>
     <string name="phone_numbers">phone numbers</string>
