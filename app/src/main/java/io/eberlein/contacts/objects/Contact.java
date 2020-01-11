@@ -2,12 +2,13 @@ package io.eberlein.contacts.objects;
 
 import java.util.Date;
 
-import io.eberlein.contacts.interfaces.NamedObjectInterface;
 import io.realm.Realm;
 import io.realm.RealmList;
 import io.realm.RealmObject;
 
-public class Contact extends RealmObject implements NamedObjectInterface<Contact> {
+
+public class Contact extends RealmObject{
+    private boolean middleNameDisplayed;
     private String firstName;
     private String middleName;
     private String lastName;
@@ -15,12 +16,9 @@ public class Contact extends RealmObject implements NamedObjectInterface<Contact
     private Date lastModifiedDate;
     private String birthDate;
     private RealmList<Address> addresses;
-
-    public Contact(){
-        createdDate = new Date();
-        lastModifiedDate = createdDate;
-        addresses = new RealmList<>();
-    }
+    private RealmList<PhoneNumber> phoneNumbers;
+    private RealmList<EmailAddress> emailAddresses;
+    private RealmList<Note> notes;
 
     public String getFirstName() {
         return firstName;
@@ -34,9 +32,9 @@ public class Contact extends RealmObject implements NamedObjectInterface<Contact
         return lastName;
     }
 
-    public String getFullname(boolean withMiddleName){
+    public String getName(){
         String r = lastName + ", " + firstName;
-        if(withMiddleName) r += " " + middleName;
+        if(middleNameDisplayed) r += " " + middleName;
         return r;
     }
 
@@ -54,6 +52,22 @@ public class Contact extends RealmObject implements NamedObjectInterface<Contact
 
     public RealmList<Address> getAddresses() {
         return addresses;
+    }
+
+    public RealmList<PhoneNumber> getPhoneNumbers() {
+        return phoneNumbers;
+    }
+
+    public RealmList<EmailAddress> getEmailAddresses() {
+        return emailAddresses;
+    }
+
+    public RealmList<Note> getNotes() {
+        return notes;
+    }
+
+    public boolean isMiddleNameDisplayed() {
+        return middleNameDisplayed;
     }
 
     public void setFirstName(String firstName) {
@@ -84,22 +98,35 @@ public class Contact extends RealmObject implements NamedObjectInterface<Contact
         this.addresses = addresses;
     }
 
-    public static Contact create(Realm r){
-        r.beginTransaction();
-        Contact c = r.createObject(Contact.class);
-        r.commitTransaction();
-        return c;
+    public void setPhoneNumbers(RealmList<PhoneNumber> phoneNumbers) {
+        this.phoneNumbers = phoneNumbers;
     }
 
-    public String getName() {
-        return getFullname(false);
+    public void setEmailAddresses(RealmList<EmailAddress> emailAddresses) {
+        this.emailAddresses = emailAddresses;
     }
 
-    @Override
+    public void setNotes(RealmList<Note> notes) {
+        this.notes = notes;
+    }
+
+    public void setMiddleNameDisplayed(boolean middleNameDisplayed) {
+        this.middleNameDisplayed = middleNameDisplayed;
+    }
+
+    public void setName(String name) {}
+
     public void delete() {
         Realm r = getRealm();
         r.beginTransaction();
         deleteFromRealm();
         r.commitTransaction();
+    }
+
+    public static Contact create(Realm realm){
+        realm.beginTransaction();
+        Contact r = realm.createObject(Contact.class);
+        realm.commitTransaction();
+        return r;
     }
 }

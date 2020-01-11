@@ -19,18 +19,22 @@ import java.security.GeneralSecurityException;
 import butterknife.ButterKnife;
 import io.eberlein.contacts.dialogs.AddressDialog;
 import io.eberlein.contacts.dialogs.ContactDialog;
-import io.eberlein.contacts.dialogs.DeleteContactDialog;
+import io.eberlein.contacts.dialogs.EmailAddressDialog;
+import io.eberlein.contacts.dialogs.NoteDialog;
+import io.eberlein.contacts.dialogs.PhoneNumberDialog;
+import io.eberlein.contacts.objects.Address;
 import io.eberlein.contacts.objects.Contact;
+import io.eberlein.contacts.objects.EmailAddress;
+import io.eberlein.contacts.objects.Note;
+import io.eberlein.contacts.objects.PhoneNumber;
 import io.eberlein.contacts.objects.Settings;
-import io.eberlein.contacts.objects.events.EventAddContact;
-import io.eberlein.contacts.objects.events.EventContactSelected;
-import io.eberlein.contacts.objects.events.EventDeleteContact;
-import io.eberlein.contacts.objects.events.EventEditAddress;
-import io.eberlein.contacts.objects.events.EventEditContact;
 import io.eberlein.contacts.objects.events.EventEncryptionDone;
+import io.eberlein.contacts.objects.events.EventOpenDialog;
 import io.eberlein.contacts.ui.FragmentContacts;
 import io.eberlein.contacts.ui.FragmentDecrypt;
 import io.eberlein.contacts.ui.FragmentEncrypt;
+import io.eberlein.contacts.ui.FragmentSettings;
+import io.eberlein.contacts.ui.FragmentSync;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
@@ -76,28 +80,28 @@ public class MainActivity extends FragmentActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventAddContact(EventAddContact e){
-        new ContactDialog(this, Contact.create(realm)).build();
+    public void onEventOpenDialogContact(EventOpenDialog<Contact> e){
+        new ContactDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventContactSelected(EventContactSelected e){
-        new ContactDialog(this, e.getObject()).build();
+    public void onEventOpenDialogAddress(EventOpenDialog<Address> e){
+        new AddressDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventDeleteContact(EventDeleteContact e){
-        new DeleteContactDialog(this, e.getObject()).build();
+    public void onEventOpenDialogEmailAddress(EventOpenDialog<EmailAddress> e){
+        new EmailAddressDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventEditContact(EventEditContact e){
-        new ContactDialog(this, e.getObject());
+    public void onEventOpenDialogPhoneNumber(EventOpenDialog<PhoneNumber> e){
+        new PhoneNumberDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventEditAddress(EventEditAddress e){
-        new AddressDialog(this, e.getObject());
+    public void onEventOpenDialogNote(EventOpenDialog<Note> e){
+        new NoteDialog(this, e.getObject()).show();
     }
 
     private void initDB(String password){
@@ -138,7 +142,9 @@ public class MainActivity extends FragmentActivity {
         int id = item.getItemId();
 
         if (id == R.id.action_settings) {
-            return true;
+            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host);
+        } else if(id == R.id.action_sync) {
+            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(realm), R.id.fragment_host);
         }
 
         return super.onOptionsItemSelected(item);

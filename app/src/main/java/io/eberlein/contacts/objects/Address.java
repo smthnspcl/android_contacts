@@ -1,11 +1,10 @@
 package io.eberlein.contacts.objects;
 
-import io.eberlein.contacts.interfaces.NamedObjectInterface;
 import io.realm.Realm;
 import io.realm.RealmObject;
 
 
-public class Address extends RealmObject implements NamedObjectInterface<Address> {
+public class Address extends RealmObject {
     private String name;
     private String streetName;
     private String houseNumber;
@@ -33,10 +32,6 @@ public class Address extends RealmObject implements NamedObjectInterface<Address
         return notes;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public void setStreetName(String streetName) {
         this.streetName = streetName;
     }
@@ -57,6 +52,10 @@ public class Address extends RealmObject implements NamedObjectInterface<Address
         this.notes = notes;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getAddressFine(){
         return streetName + " " + houseNumber;
     }
@@ -69,7 +68,7 @@ public class Address extends RealmObject implements NamedObjectInterface<Address
         return name;
     }
 
-    public void delete(){
+    public void delete() {
         Realm r = getRealm();
         r.beginTransaction();
         deleteFromRealm();
@@ -78,8 +77,8 @@ public class Address extends RealmObject implements NamedObjectInterface<Address
 
     public static Address create(Realm realm){
         realm.beginTransaction();
-        Address a = realm.createObject(Address.class);
+        Address r = realm.createObject(Address.class);
         realm.commitTransaction();
-        return a;
+        return r;
     }
 }

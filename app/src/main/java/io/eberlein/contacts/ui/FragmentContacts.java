@@ -17,9 +17,10 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.adapters.ContactAdapter;
+import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.objects.Contact;
-import io.eberlein.contacts.objects.events.EventAddContact;
+import io.eberlein.contacts.objects.events.EventOpenDialog;
+import io.eberlein.contacts.viewholders.VHContact;
 import io.realm.Realm;
 
 public class FragmentContacts extends Fragment {
@@ -29,7 +30,7 @@ public class FragmentContacts extends Fragment {
 
     @OnClick(R.id.btn_add_contact)
     void btnAddContactClicked(){
-        EventBus.getDefault().post(new EventAddContact());
+        EventBus.getDefault().post(new EventOpenDialog<Contact>(Contact.create(realm)));
     }
 
     public FragmentContacts(Realm realm){
@@ -42,7 +43,7 @@ public class FragmentContacts extends Fragment {
         View v = inflater.inflate(R.layout.fragment_contacts, container, false);
         ButterKnife.bind(this, v);
         recycler.setLayoutManager(new LinearLayoutManager(getContext()));
-        recycler.setAdapter(new ContactAdapter(realm.where(Contact.class).findAll()));
+        recycler.setAdapter(new VHAdapter<Contact, VHContact>(VHContact.class, realm.where(Contact.class).findAll()));
         return v;
     }
 }

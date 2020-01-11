@@ -2,11 +2,11 @@ package io.eberlein.contacts.objects;
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
-import java.util.Set;
 
 import io.eberlein.contacts.AES;
 import io.realm.Realm;
 import io.realm.RealmObject;
+
 
 public class Settings extends RealmObject {
     private boolean firstRun;
@@ -14,7 +14,8 @@ public class Settings extends RealmObject {
     private boolean masterKeyGenerated;
     private String encryptionKey;
     private String encryptionSalt;
-
+    private boolean discoverable;
+    private boolean showMiddleName;
 
     public Settings(){
         firstRun = true;
@@ -38,6 +39,10 @@ public class Settings extends RealmObject {
         return firstRun;
     }
 
+    public boolean isDiscoverable() {
+        return discoverable;
+    }
+
     public void setFirstRun(boolean firstRun) {
         this.firstRun = firstRun;
     }
@@ -57,6 +62,10 @@ public class Settings extends RealmObject {
         encryptionSalt = AES.saltString(AES.generateSalt());
         encryptionKey = new String(AES.encrypt(encryptionKey, AES.generateKeyFromPassword(password, encryptionSalt)).getCipherText());
         getRealm().commitTransaction();
+    }
+
+    public void setDiscoverable(boolean discoverable) {
+        this.discoverable = discoverable;
     }
 
     public static Settings get(){

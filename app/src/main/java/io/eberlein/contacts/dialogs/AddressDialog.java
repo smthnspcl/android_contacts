@@ -7,16 +7,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 
-import androidx.annotation.NonNull;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.objects.Address;
 
-public class AddressDialog {
-    private Context context;
-    private Address address;
+public class AddressDialog extends BaseDialog<Address> {
 
     @BindView(R.id.et_name) EditText name;
     @BindView(R.id.et_street) EditText street;
@@ -25,15 +21,15 @@ public class AddressDialog {
     @BindView(R.id.et_city) EditText city;
     @BindView(R.id.et_notes) EditText notes;
 
-    public AddressDialog(@NonNull Context context, @NonNull Address address){
-        this.context = context;
-        this.address = address;
+    public AddressDialog(Context context, Address address){
+        super(context, address, R.layout.dialog_address);
     }
 
-    public void build(){
-        View v = LayoutInflater.from(context).inflate(R.layout.dialog_address, null, false);
+    public void show(){
+        View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_address, null, false);
         ButterKnife.bind(this, v);
-        new AlertDialog.Builder(context)
+        Address address = getObject();
+        new AlertDialog.Builder(getContext())
                 .setTitle("address")
                 .setView(v)
                 .setPositiveButton("save", new DialogInterface.OnClickListener() {
