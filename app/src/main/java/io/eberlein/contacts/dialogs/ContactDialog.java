@@ -22,6 +22,7 @@ import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.objects.Address;
 import io.eberlein.contacts.objects.Contact;
 import io.eberlein.contacts.objects.EmailAddress;
+import io.eberlein.contacts.objects.Note;
 import io.eberlein.contacts.objects.PhoneNumber;
 import io.eberlein.contacts.objects.events.EventChoosePicture;
 import io.eberlein.contacts.viewholders.VHAddress;
@@ -70,6 +71,40 @@ public class ContactDialog extends BaseDialog<Contact>{
         r.commitTransaction();
         new AddressDialog(getContext(), address).show();
     }
+
+    @OnClick(R.id.btn_add_phone_number)
+    void onBtnAddPhoneNumberClicked(){
+        Contact contact = getObject();
+        Realm r = contact.getRealm();
+        PhoneNumber phoneNumber = PhoneNumber.create(r);
+        r.beginTransaction();
+        contact.getPhoneNumbers().add(phoneNumber);
+        r.commitTransaction();
+        new PhoneNumberDialog(getContext(), phoneNumber).show();
+    }
+
+    @OnClick(R.id.btn_add_email_address)
+    void onBtnAddEmailAddressClicked(){
+        Contact contact = getObject();
+        Realm r = contact.getRealm();
+        EmailAddress emailAddress = EmailAddress.create(r);
+        r.beginTransaction();
+        contact.getEmailAddresses().add(emailAddress);
+        r.commitTransaction();
+        new EmailAddressDialog(getContext(), emailAddress).show();
+    }
+
+    @OnClick(R.id.btn_add_note)
+    void onBtnAddNoteClicked(){
+        Contact contact = getObject();
+        Realm r = contact.getRealm();
+        Note note = Note.create(r);
+        r.beginTransaction();
+        contact.getNotes().add(note);
+        r.commitTransaction();
+        new NoteDialog(getContext(), note).show();
+    }
+
 
     public ContactDialog(Context context, Contact contact){
         super(context, contact, R.layout.dialog_contact);

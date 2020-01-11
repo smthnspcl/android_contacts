@@ -14,6 +14,13 @@ public class EmailAddress extends RealmObject {
         this.email = email;
     }
 
+    public void delete(){
+        Realm r = getRealm();
+        r.beginTransaction();
+        deleteFromRealm();
+        r.commitTransaction();
+    }
+
     public static EmailAddress create(Realm realm){
         realm.beginTransaction();
         EmailAddress r = realm.createObject(EmailAddress.class);

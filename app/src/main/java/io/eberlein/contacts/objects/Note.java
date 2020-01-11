@@ -14,6 +14,13 @@ public class Note extends RealmObject {
         this.note = note;
     }
 
+    public void delete(){
+        Realm r = getRealm();
+        r.beginTransaction();
+        deleteFromRealm();
+        r.commitTransaction();
+    }
+
     public static Note create(Realm realm){
         realm.beginTransaction();
         Note r = realm.createObject(Note.class);

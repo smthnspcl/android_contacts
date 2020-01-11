@@ -12,5 +12,7 @@ public class VHPhoneNumber extends VH<PhoneNumber> {
     @Override
     void onSetObject() {
         left_middle.setText(object.getNumber());
+        one.setVisibility(View.GONE);
+        two.setVisibility(View.GONE);
     }
 }

@@ -12,5 +12,7 @@ public class VHEmailAddress extends VH<EmailAddress> {
     @Override
     void onSetObject() {
         left_middle.setText(object.getEmail());
+        one.setVisibility(View.GONE);
+        two.setVisibility(View.GONE);
     }
 }

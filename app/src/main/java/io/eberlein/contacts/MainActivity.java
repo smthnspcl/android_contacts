@@ -28,6 +28,7 @@ import io.eberlein.contacts.objects.EmailAddress;
 import io.eberlein.contacts.objects.Note;
 import io.eberlein.contacts.objects.PhoneNumber;
 import io.eberlein.contacts.objects.Settings;
+import io.eberlein.contacts.objects.events.EventDeleteObject;
 import io.eberlein.contacts.objects.events.EventEncryptionDone;
 import io.eberlein.contacts.objects.events.EventOpenDialog;
 import io.eberlein.contacts.ui.FragmentContacts;
@@ -102,6 +103,31 @@ public class MainActivity extends FragmentActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogNote(EventOpenDialog<Note> e){
         new NoteDialog(this, e.getObject()).show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventDeleteContact(EventDeleteObject<Contact> e){
+        e.getObject().delete();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventDeleteAddress(EventDeleteObject<Address> e){
+        e.getObject().delete();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventDeletePhoneNumber(EventDeleteObject<PhoneNumber> e){
+        e.getObject().delete();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventDeleteEmailAddress(EventDeleteObject<EmailAddress> e){
+        e.getObject().delete();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventDeleteNote(EventDeleteObject<Note> e){
+        e.getObject().delete();
     }
 
     private void initDB(String password){
