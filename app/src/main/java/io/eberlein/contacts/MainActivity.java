@@ -157,8 +157,12 @@ public class MainActivity extends AppCompatActivity {
         if(settings == null) settings = Settings.create();
 
         if(settings.isFirstRun()){
+            showOptionsMenu = false;
+            invalidateOptionsMenu();
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentEncrypt(settings), R.id.fragment_host);
         } else {
+            showOptionsMenu = true;
+            invalidateOptionsMenu();
             RealmConfiguration.Builder rcb = new RealmConfiguration.Builder();
 
             if(settings.isEncrypted()){

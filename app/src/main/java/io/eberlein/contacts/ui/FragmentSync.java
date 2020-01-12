@@ -54,7 +54,6 @@ public class FragmentSync extends Fragment {
     @OnClick(R.id.btn_discover)
     void onSwitchEnableClicked(){
         nsdManager.discoverServices(SERVICE_NAME, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
-        discover.setClickable(false);
     }
 
     private NsdManager.ResolveListener resolveListener = new NsdManager.ResolveListener() {
@@ -87,13 +86,12 @@ public class FragmentSync extends Fragment {
         @Override
         public void onDiscoveryStarted(String serviceType) {
             Toast.makeText(getContext(), "discovery started", Toast.LENGTH_LONG).show();
-            discover.setClickable(false);
+            discover.setEnabled(false);
         }
 
         @Override
         public void onDiscoveryStopped(String serviceType) {
-            discover.setClickable(true);
-            nsdManager.discoverServices(serviceType, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
+            discover.setEnabled(false);
         }
 
         @Override
@@ -203,7 +201,7 @@ public class FragmentSync extends Fragment {
         View v = inflater.inflate(R.layout.fragment_sync, container, false);
         ButterKnife.bind(this, v);
         recyclerRemoteDevices.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new VHAdapter<NsdServiceInfo, VHNsdServiceInfo>(VHNsdServiceInfo.class, remoteDevices);
+        adapter = new VHAdapter<>(VHNsdServiceInfo.class, remoteDevices);
         recyclerRemoteDevices.setAdapter(adapter);
         return v;
     }

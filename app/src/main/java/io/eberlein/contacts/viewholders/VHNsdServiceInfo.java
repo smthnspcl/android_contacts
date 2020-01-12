@@ -6,6 +6,8 @@ import android.view.View;
 import org.greenrobot.eventbus.EventBus;
 
 import butterknife.OnClick;
+import butterknife.OnLongClick;
+import io.eberlein.contacts.R;
 import io.eberlein.contacts.objects.events.EventSelectedSyncDevice;
 
 public class VHNsdServiceInfo extends VH<NsdServiceInfo> {
@@ -18,12 +20,15 @@ public class VHNsdServiceInfo extends VH<NsdServiceInfo> {
         EventBus.getDefault().post(new EventSelectedSyncDevice(object));
     }
 
+    @OnLongClick
+    void onLongClick(){
+
+    }
+
     @Override
     public void onSetObject() {
         left_middle.setText(object.getServiceName());
         right_up.setText(object.getHost().toString());
         right_bottom.setText(String.valueOf(object.getPort()));
-        one.setVisibility(View.GONE);
-        two.setVisibility(View.GONE);
     }
 }
