@@ -28,8 +28,26 @@ public class VHContact extends VH<Contact> {
     @Override
     public void onSetObject() {
         left_middle.setText(object.getName());
+    }
+
+    @Override
+    public void onBind() {
+        one.setVisibility(View.VISIBLE);
+        two.setVisibility(View.VISIBLE);
         one.setText(R.string.call);
         two.setText(R.string.sms);
+    }
+
+    @Override
+    public void onCloseExtraMenu() {
+        one.setVisibility(View.VISIBLE);
+        two.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onOpenExtraMenu() {
+        one.setVisibility(View.GONE);
+        two.setVisibility(View.GONE);
     }
 
     @Override

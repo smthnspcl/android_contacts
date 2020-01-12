@@ -43,6 +43,16 @@ public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
 
     }
 
+    @Override
+    public void onOpenExtraMenu() {
+
+    }
+
+    @Override
+    public void onCloseExtraMenu() {
+
+    }
+
     @OnClick
     void onClick(){
         if(!extraMenuOpen) onSelected();
@@ -67,8 +77,6 @@ public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
 
     private void openExtraMenu(){
         extraMenuOpen = true;
-        one.setVisibility(View.GONE);
-        two.setVisibility(View.GONE);
         delete.setVisibility(View.VISIBLE);
         edit.setVisibility(View.VISIBLE);
         right_up.setVisibility(View.GONE);
@@ -78,8 +86,6 @@ public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
 
     private void closeExtraMenu(){
         extraMenuOpen = false;
-        one.setVisibility(View.VISIBLE);
-        two.setVisibility(View.VISIBLE);
         delete.setVisibility(View.GONE);
         edit.setVisibility(View.GONE);
         right_up.setVisibility(View.VISIBLE);
@@ -87,7 +93,10 @@ public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
         right_bottom.setVisibility(View.VISIBLE);
     }
 
-    public void onBind(){ }
+    public void onBind(){
+        one.setVisibility(View.GONE);
+        two.setVisibility(View.GONE);
+    }
 
     public void onSetObject(){ }
 

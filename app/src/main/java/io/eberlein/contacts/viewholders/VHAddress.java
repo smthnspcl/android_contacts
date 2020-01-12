@@ -17,8 +17,6 @@ public class VHAddress extends VH<Address> {
     public void onSetObject() {
         left_up.setText(object.getAddressFine());
         left_bottom.setText(object.getAddressCourse());
-        one.setVisibility(View.GONE);
-        two.setVisibility(View.GONE);
     }
 
     @Override

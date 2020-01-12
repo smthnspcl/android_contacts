@@ -6,4 +6,6 @@ public interface VHInterface {
     void onSetObject();
     void onBind();
     void onDelete();
+    void onOpenExtraMenu();
+    void onCloseExtraMenu();
 }
