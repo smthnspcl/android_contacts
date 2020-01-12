@@ -2,13 +2,13 @@ package io.eberlein.contacts;
 
 import android.content.Context;
 import android.net.nsd.NsdManager;
-import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
@@ -29,15 +29,19 @@ import io.eberlein.contacts.dialogs.EmailAddressDialog;
 import io.eberlein.contacts.dialogs.NoteDialog;
 import io.eberlein.contacts.dialogs.NsdServiceInfoDialog;
 import io.eberlein.contacts.dialogs.PhoneNumberDialog;
-import io.eberlein.contacts.objects.Address;
-import io.eberlein.contacts.objects.Contact;
-import io.eberlein.contacts.objects.EmailAddress;
-import io.eberlein.contacts.objects.Note;
-import io.eberlein.contacts.objects.PhoneNumber;
 import io.eberlein.contacts.objects.Settings;
-import io.eberlein.contacts.objects.events.EventDeleteObject;
+import io.eberlein.contacts.objects.events.EventDeleteAddress;
+import io.eberlein.contacts.objects.events.EventDeleteContact;
+import io.eberlein.contacts.objects.events.EventDeleteEmailAddress;
+import io.eberlein.contacts.objects.events.EventDeleteNote;
+import io.eberlein.contacts.objects.events.EventDeletePhoneNumber;
 import io.eberlein.contacts.objects.events.EventEncryptionDone;
-import io.eberlein.contacts.objects.events.EventOpenDialog;
+import io.eberlein.contacts.objects.events.EventSelectedAddress;
+import io.eberlein.contacts.objects.events.EventSelectedContact;
+import io.eberlein.contacts.objects.events.EventSelectedEmailAddress;
+import io.eberlein.contacts.objects.events.EventSelectedNote;
+import io.eberlein.contacts.objects.events.EventSelectedPhoneNumber;
+import io.eberlein.contacts.objects.events.EventSelectedSyncDevice;
 import io.eberlein.contacts.ui.FragmentContacts;
 import io.eberlein.contacts.ui.FragmentDecrypt;
 import io.eberlein.contacts.ui.FragmentEncrypt;
@@ -53,6 +57,7 @@ import io.realm.RealmConfiguration;
 
 public class MainActivity extends AppCompatActivity {
     private Realm realm;
+    private boolean showOptionsMenu = false;
 
     @BindView(R.id.toolbar) Toolbar toolbar;
 
@@ -87,61 +92,63 @@ public class MainActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventEncryptionDone(EventEncryptionDone e){
         initDB(e.getObject());
+        showOptionsMenu = true;
+        invalidateOptionsMenu();
         FragmentUtils.replace(getSupportFragmentManager(), new FragmentContacts(realm), R.id.fragment_host);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventOpenDialogContact(EventOpenDialog<Contact> e){
+    public void onEventOpenDialogContact(EventSelectedContact e){
         new ContactDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventOpenDialogAddress(EventOpenDialog<Address> e){
+    public void onEventOpenDialogAddress(EventSelectedAddress e){
         new AddressDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventOpenDialogEmailAddress(EventOpenDialog<EmailAddress> e){
+    public void onEventOpenDialogEmailAddress(EventSelectedEmailAddress e){
         new EmailAddressDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventOpenDialogPhoneNumber(EventOpenDialog<PhoneNumber> e){
+    public void onEventOpenDialogPhoneNumber(EventSelectedPhoneNumber e){
         new PhoneNumberDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventOpenDialogNote(EventOpenDialog<Note> e){
+    public void onEventOpenDialogNote(EventSelectedNote e){
         new NoteDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventOpenDialogSync(EventOpenDialog<NsdServiceInfo> e){
+    public void onEventOpenDialogSync(EventSelectedSyncDevice e){
         new NsdServiceInfoDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventDeleteContact(EventDeleteObject<Contact> e){
+    public void onEventDeleteContact(EventDeleteContact e){
         e.getObject().delete();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventDeleteAddress(EventDeleteObject<Address> e){
+    public void onEventDeleteAddress(EventDeleteAddress e){
         e.getObject().delete();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventDeletePhoneNumber(EventDeleteObject<PhoneNumber> e){
+    public void onEventDeletePhoneNumber(EventDeletePhoneNumber e){
         e.getObject().delete();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventDeleteEmailAddress(EventDeleteObject<EmailAddress> e){
+    public void onEventDeleteEmailAddress(EventDeleteEmailAddress e){
         e.getObject().delete();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventDeleteNote(EventDeleteObject<Note> e){
+    public void onEventDeleteNote(EventDeleteNote e){
         e.getObject().delete();
     }
 
@@ -174,7 +181,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+        for(int i=0; i<menu.size(); i++) menu.getItem(i).setVisible(showOptionsMenu);
         return true;
     }
 

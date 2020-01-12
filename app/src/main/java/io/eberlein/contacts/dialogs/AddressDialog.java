@@ -1,14 +1,10 @@
 package io.eberlein.contacts.dialogs;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.EditText;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.objects.Address;
 
@@ -26,12 +22,8 @@ public class AddressDialog extends BaseDialog<Address> {
     }
 
     public void show(){
-        View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_address, null, false);
-        ButterKnife.bind(this, v);
         Address address = getObject();
-        new AlertDialog.Builder(getContext())
-                .setTitle("address")
-                .setView(v)
+        builder.setTitle("address")
                 .setPositiveButton("save", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {

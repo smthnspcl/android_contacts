@@ -1,10 +1,7 @@
 package io.eberlein.contacts.dialogs;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -13,12 +10,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.greenrobot.eventbus.EventBus;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
 import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
 import butterknife.OnLongClick;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.adapters.VHAdapter;
+import io.eberlein.contacts.adapters.VHRealmAdapter;
 import io.eberlein.contacts.objects.Address;
 import io.eberlein.contacts.objects.Contact;
 import io.eberlein.contacts.objects.EmailAddress;
@@ -27,6 +23,7 @@ import io.eberlein.contacts.objects.PhoneNumber;
 import io.eberlein.contacts.objects.events.EventChoosePicture;
 import io.eberlein.contacts.viewholders.VHAddress;
 import io.eberlein.contacts.viewholders.VHEmailAddress;
+import io.eberlein.contacts.viewholders.VHNote;
 import io.eberlein.contacts.viewholders.VHPhoneNumber;
 import io.realm.Realm;
 
@@ -42,6 +39,7 @@ public class ContactDialog extends BaseDialog<Contact>{
     @BindView(R.id.rv_addresses) RecyclerView addresses;
     @BindView(R.id.rv_phone_numbers) RecyclerView phoneNumbers;
     @BindView(R.id.rv_email_addresses) RecyclerView emailAddresses;
+    @BindView(R.id.rv_notes) RecyclerView notes;
 
     @OnLongClick(R.id.iv_picture)
     void onIVPictureLongClicked(){
@@ -118,21 +116,19 @@ public class ContactDialog extends BaseDialog<Contact>{
         displayMiddleName.setChecked(contact.isMiddleNameDisplayed());
         birthDay.setText(contact.getBirthDate());
         addresses.setLayoutManager(new LinearLayoutManager(getContext()));
-        addresses.setAdapter(new VHAdapter<Address, VHAddress>(VHAddress.class, contact.getAddresses()));
+        addresses.setAdapter(new VHRealmAdapter<>(VHAddress.class, contact.getAddresses()));
         phoneNumbers.setLayoutManager(new LinearLayoutManager(getContext()));
-        phoneNumbers.setAdapter(new VHAdapter<PhoneNumber, VHPhoneNumber>(VHPhoneNumber.class, contact.getPhoneNumbers()));
+        phoneNumbers.setAdapter(new VHRealmAdapter<>(VHPhoneNumber.class, contact.getPhoneNumbers()));
         emailAddresses.setLayoutManager(new LinearLayoutManager(getContext()));
-        emailAddresses.setAdapter(new VHAdapter<EmailAddress, VHEmailAddress>(VHEmailAddress.class, contact.getEmailAddresses()));
+        emailAddresses.setAdapter(new VHRealmAdapter<>(VHEmailAddress.class, contact.getEmailAddresses()));
+        notes.setLayoutManager(new LinearLayoutManager(getContext()));
+        notes.setAdapter(new VHRealmAdapter<>(VHNote.class, contact.getNotes()));
     }
 
     public void show(){
-        View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_contact, null, false);
-        ButterKnife.bind(this, v);
         populate();
         Contact contact = getObject();
-        new AlertDialog.Builder(getContext())
-                .setTitle(contact.getName())
-                .setView(v)
+        builder.setTitle(contact.getName())
                 .setPositiveButton("save", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {

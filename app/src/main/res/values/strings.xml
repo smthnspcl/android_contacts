@@ -29,4 +29,7 @@
     <string name="addresses">addresses</string>
     <string name="phone_numbers">phone numbers</string>
     <string name="email_addresses">email addresses</string>
+    <string name="phone_number">phone number</string>
+    <string name="save">save</string>
+    <string name="cancel">cancel</string>
 </resources>

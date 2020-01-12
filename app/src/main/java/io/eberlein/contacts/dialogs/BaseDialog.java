@@ -2,6 +2,10 @@ package io.eberlein.contacts.dialogs;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+
+import butterknife.ButterKnife;
 
 public class BaseDialog<T> {
     private Context context;
@@ -11,7 +15,9 @@ public class BaseDialog<T> {
     public BaseDialog(Context context, T object, int layout){
         this.context = context;
         this.object = object;
-        this.builder = new AlertDialog.Builder(context).setView(layout);
+        View v = LayoutInflater.from(context).inflate(layout, null, false);
+        ButterKnife.bind(this, v);
+        this.builder = new AlertDialog.Builder(context).setView(v);
     }
 
     public void show(){

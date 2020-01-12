@@ -5,6 +5,7 @@ import io.realm.Realm;
 import io.realm.RealmObject;
 
 public class PhoneNumber extends RealmObject {
+    private String name;
     private String countryCode;
     private String number;
 
@@ -16,12 +17,20 @@ public class PhoneNumber extends RealmObject {
         return countryCode;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public void setNumber(String number) {
         this.number = number;
     }
 
     public void setCountryCode(String countryCode) {
         this.countryCode = countryCode;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public void delete(){

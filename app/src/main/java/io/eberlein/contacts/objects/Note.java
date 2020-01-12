@@ -4,10 +4,19 @@ import io.realm.Realm;
 import io.realm.RealmObject;
 
 public class Note extends RealmObject {
+    private String name;
     private String note;
+
+    public String getName() {
+        return name;
+    }
 
     public String getNote() {
         return note;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public void setNote(String note) {

@@ -6,9 +6,6 @@ import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.greenrobot.eventbus.EventBus;
-
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 import butterknife.BindView;
@@ -16,13 +13,10 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.OnLongClick;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.objects.events.EventDeleteObject;
-import io.eberlein.contacts.objects.events.EventOpenDialog;
-import io.eberlein.contacts.objects.events.EventWithObject;
-import io.realm.RealmObject;
+import io.eberlein.contacts.interfaces.VHInterface;
 
 
-public class VH<T> extends RecyclerView.ViewHolder {
+public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
     T object;
     private boolean extraMenuOpen = false;
 
@@ -37,9 +31,21 @@ public class VH<T> extends RecyclerView.ViewHolder {
     @BindView(R.id.tv_right_middle) TextView right_middle;
     @BindView(R.id.tv_right_bottom) TextView right_bottom;
 
+    public void onSelected(){
+
+    }
+
+    public void onEdit(){
+
+    }
+
+    public void onDelete(){
+
+    }
+
     @OnClick
     void onClick(){
-        if(!extraMenuOpen) EventBus.getDefault().post(new EventWithObject<T>(object));
+        if(!extraMenuOpen) onSelected();
         else closeExtraMenu();
     }
 
@@ -49,14 +55,14 @@ public class VH<T> extends RecyclerView.ViewHolder {
         else openExtraMenu();
     }
 
-    @OnClick(R.id.btn_delete)
-    void onBtnDeleteClicked(){
-        EventBus.getDefault().post(new EventDeleteObject<T>(object));
-    }
-
     @OnClick(R.id.btn_edit)
     void onBtnEditClicked(){
-        EventBus.getDefault().post(new EventOpenDialog<T>(object));
+        onEdit();
+    }
+
+    @OnClick(R.id.btn_delete)
+    void onBtnDeleteClicked(){
+        onDelete();
     }
 
     private void openExtraMenu(){
@@ -81,9 +87,9 @@ public class VH<T> extends RecyclerView.ViewHolder {
         right_bottom.setVisibility(View.VISIBLE);
     }
 
-    void onBind(){ }
+    public void onBind(){ }
 
-    void onSetObject(){ }
+    public void onSetObject(){ }
 
     public VH(View v){
         super(v);
