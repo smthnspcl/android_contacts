@@ -33,6 +33,6 @@
     <string name="save">save</string>
     <string name="cancel">cancel</string>
     <string name="email">email</string>
-    <string name="sync_question">do you really want to synchronize your contacts with this device?</string>
-    <string name="sync_password">if you want to encrypt the communication between the devices, you both need to enter the same password. or none.</string>
+    <string name="interactive">interactive</string>
+    <string name="sync_question">sync contacts with this device?</string>
 </resources>

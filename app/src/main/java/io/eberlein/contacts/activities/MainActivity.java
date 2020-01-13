@@ -1,33 +1,28 @@
-package io.eberlein.contacts;
+package io.eberlein.contacts.activities;
 
-import android.content.Context;
-import android.net.nsd.NsdManager;
+import android.Manifest;
+import android.content.Intent;
 import android.os.Bundle;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
-
 import com.blankj.utilcode.util.FragmentUtils;
-
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
-
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.eberlein.contacts.R;
 import io.eberlein.contacts.dialogs.AddressDialog;
 import io.eberlein.contacts.dialogs.ContactDialog;
 import io.eberlein.contacts.dialogs.EmailAddressDialog;
 import io.eberlein.contacts.dialogs.NoteDialog;
-import io.eberlein.contacts.dialogs.NsdServiceInfoDialog;
 import io.eberlein.contacts.dialogs.PhoneNumberDialog;
 import io.eberlein.contacts.objects.Settings;
 import io.eberlein.contacts.objects.events.EventDeleteAddress;
@@ -41,12 +36,10 @@ import io.eberlein.contacts.objects.events.EventSelectedContact;
 import io.eberlein.contacts.objects.events.EventSelectedEmailAddress;
 import io.eberlein.contacts.objects.events.EventSelectedNote;
 import io.eberlein.contacts.objects.events.EventSelectedPhoneNumber;
-import io.eberlein.contacts.objects.events.EventSelectedSyncDevice;
 import io.eberlein.contacts.ui.FragmentContacts;
 import io.eberlein.contacts.ui.FragmentDecrypt;
 import io.eberlein.contacts.ui.FragmentEncrypt;
 import io.eberlein.contacts.ui.FragmentSettings;
-import io.eberlein.contacts.ui.FragmentSync;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
@@ -68,6 +61,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         setSupportActionBar(toolbar);
+
+        requestPermissions(new String[]{
+                Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.CHANGE_WIFI_STATE,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.INTERNET}, 420);
     }
 
     @Override
@@ -120,11 +119,6 @@ public class MainActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogNote(EventSelectedNote e){
         new NoteDialog(this, e.getObject()).show();
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventOpenDialogSync(EventSelectedSyncDevice e){
-        new NsdServiceInfoDialog(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -198,7 +192,8 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host, true);
         } else if(id == R.id.action_sync) {
-            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(realm, (NsdManager) getSystemService(Context.NSD_SERVICE)), R.id.fragment_host, true);
+            Intent i = new Intent(this, SyncActivity.class);
+            startActivity(i);
         }
 
         return super.onOptionsItemSelected(item);
