@@ -43,6 +43,8 @@ import io.eberlein.contacts.ui.FragmentSettings;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
+import static io.eberlein.contacts.Static.getRealm;
+
 
 // todo add vcf/db export
 // todo add network sync
@@ -157,21 +159,12 @@ public class MainActivity extends AppCompatActivity {
         } else {
             showOptionsMenu = true;
             invalidateOptionsMenu();
-            RealmConfiguration.Builder rcb = new RealmConfiguration.Builder();
 
-            if(settings.isEncrypted()){
-                if(password != null && !password.isEmpty()){
-                    try {
-                        rcb.encryptionKey(settings.getEncryptionKey(password).getBytes());
-                    } catch (GeneralSecurityException | UnsupportedEncodingException e){
-                        e.printStackTrace();
-                        Toast.makeText(this, "password incorrect or database damaged", Toast.LENGTH_LONG).show();
-                        FragmentUtils.replace(getSupportFragmentManager(), new FragmentDecrypt(), R.id.fragment_host);
-                    }
-                }
+            realm = getRealm(settings, password);
+            if(realm == null){
+                Toast.makeText(this, "password incorrect or database damaged", Toast.LENGTH_LONG).show();
+                FragmentUtils.replace(getSupportFragmentManager(), new FragmentDecrypt(), R.id.fragment_host);
             }
-
-            realm = Realm.getInstance(rcb.build());
 
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentContacts(realm), R.id.fragment_host);
         }
@@ -193,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host, true);
         } else if(id == R.id.action_sync) {
             Intent i = new Intent(this, SyncActivity.class);
+            i.putExtra("encryptionKey", realm.getConfiguration().getEncryptionKey());
             startActivity(i);
         }
 

@@ -11,8 +11,13 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.CheckBox;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -20,24 +25,44 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.alibaba.fastjson.JSON;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.dialogs.SyncDialog;
+import io.eberlein.contacts.objects.Contact;
 import io.eberlein.contacts.objects.SyncConfiguration;
 import io.eberlein.contacts.objects.events.EventSelectedWifiP2pDevice;
 import io.eberlein.contacts.objects.events.EventSync;
 import io.eberlein.contacts.viewholders.VHWifiP2pDevice;
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+
+import static android.net.wifi.p2p.WifiP2pManager.P2P_UNSUPPORTED;
 
 
 // todo find out if device is capable of wifi direct
@@ -53,6 +78,7 @@ manager.requestGroupInfo(channel, new GroupInfoListener() {
  */
 
 public class SyncActivity extends AppCompatActivity {
+    private Realm realm;
     private static final String LOG_TAG = "SyncActivity";
     private boolean isScanning = false;
     private boolean isSyncing = false;
@@ -62,14 +88,73 @@ public class SyncActivity extends AppCompatActivity {
     private BroadcastReceiver wifiP2pBroadcastReceiver;
     private VHAdapter adapter;
     private List<WifiP2pDevice> p2pDevices;
-    private WifiP2pDevice thisDevice;
+    private ServerSocket serverSocket;
+    private SyncConfiguration syncConfiguration;
+    private WifiP2pInfo wifiP2pInfo;
 
     @BindView(R.id.rv_remote_devices)
     RecyclerView recyclerRemoteDevices;
 
+    @BindView(R.id.btn_search_devices)
+    FloatingActionButton searchBtn;
+
+    @BindView(R.id.cb_is_host)
+    CheckBox isHost;
+
+    @BindView(R.id.pb_search)
+    ProgressBar progressBar;
+
+    @OnCheckedChanged(R.id.cb_is_host)
+    void onCheckedChangedIsHost(){
+        if(isHost.isChecked()) {
+            searchBtn.hide();
+            createServerSocket();
+        } else {
+            searchBtn.show();
+            destroyServerSocket();
+        }
+    }
+
+    private WifiP2pManager.ActionListener addLocalServiceListener = new WifiP2pManager.ActionListener() {
+        @Override
+        public void onSuccess() {
+
+        }
+
+        @Override
+        public void onFailure(int reason) {
+            if(reason == P2P_UNSUPPORTED) Toast.makeText(getApplicationContext(), "p2p is not supported on this device", Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    private void destroyServerSocket(){
+        p2pManager.clearLocalServices(channel, addLocalServiceListener);
+        try {
+            if (serverSocket != null) serverSocket.close();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void createServerSocket(){
+        try {
+            serverSocket = new ServerSocket(4337); // 0 todo
+        } catch (IOException e){
+            e.printStackTrace();
+            Toast.makeText(this, "could not open server port", Toast.LENGTH_SHORT).show();
+        }
+        Map<String, String> serviceRecord = new HashMap<>();
+        serviceRecord.put("listenport", String.valueOf(serverSocket.getLocalPort()));
+        serviceRecord.put("name", getHostName("contactSyncHost"));
+        WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.newInstance("_contacts", "_presence._tcp", serviceRecord);
+        p2pManager.addLocalService(channel, serviceInfo, addLocalServiceListener);
+    }
+
     @OnClick(R.id.btn_search_devices)
     void onBtnSearchDevicesClicked(){
         if(!isScanning) {
+            progressBar.setVisibility(View.VISIBLE);
+            progressBar.setProgress(42);
             isScanning = true;
             p2pManager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
                 @Override
@@ -82,6 +167,7 @@ public class SyncActivity extends AppCompatActivity {
                 public void onFailure(int reason) {
                     Toast.makeText(getApplicationContext(), "failed to scan", Toast.LENGTH_SHORT).show();
                     Log.w(LOG_TAG, "p2pManager.discoverPeers:onFailure");
+                    progressBar.setVisibility(View.GONE);
                 }
             });
         } else {
@@ -93,6 +179,7 @@ public class SyncActivity extends AppCompatActivity {
         @Override
         public void onPeersAvailable(WifiP2pDeviceList peers) {
             isScanning = false;
+            progressBar.setVisibility(View.GONE);
             Collection<WifiP2pDevice> rPeers = peers.getDeviceList();
             if(rPeers.size() == 0) {
                 Log.d(LOG_TAG, "no devices found");
@@ -105,14 +192,69 @@ public class SyncActivity extends AppCompatActivity {
         }
     };
 
+    private void tryWriteOutputStream(OutputStream os, byte[] data){
+        try {
+            os.write(data);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    // NetworkOnMainThreadException
+    private void doSync(OutputStream os, InputStream is){
+        tryWriteOutputStream(os, "START".getBytes(StandardCharsets.UTF_8));
+        for(Contact c : realm.where(Contact.class).findAll()){
+            Log.d(LOG_TAG, "syncing: " + c.getName());
+            tryWriteOutputStream(os, JSON.toJSONString(c).getBytes(StandardCharsets.UTF_8));
+        }
+        tryWriteOutputStream(os, "END".getBytes(StandardCharsets.UTF_8));
+        byte[] in = new byte[4096];
+        try {
+            while (is.read(in) != -1){
+                String strData = new String(in);
+                if(strData.equals("END")) break;
+                if(strData.equals("START")) continue;
+                Contact c = JSON.parseObject(strData, Contact.class);
+                Contact ec = realm.where(Contact.class).equalTo("uuid", c.getUuid()).findFirst();
+                Log.d(LOG_TAG, "doSync: remote: " + c.getName() + " : " + c.getLastModifiedDate());
+                Log.d(LOG_TAG, "doSync: local:  " + (ec != null));
+                if(ec == null) realm.copyToRealm(c);
+                else if(ec.getLastModifiedDate().before(c.getLastModifiedDate())) realm.copyToRealmOrUpdate(c);
+            }
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void syncWithDevice(){
+        if(syncConfiguration == null){
+            Log.wtf(LOG_TAG, "syncWithDevice:syncConfiguration == null");
+            return;
+        }
+        isSyncing = true;
+        String address = wifiP2pInfo.groupOwnerAddress.getHostAddress(); // gethostname?
+        // todo get port via settings
+        int PORT = 4337;
+        Log.d(LOG_TAG, "creating socketaddress for " + address + ":" + PORT);
+        SocketAddress e = new InetSocketAddress(address, PORT);
+        Socket s = new Socket();
+        try {
+            s.connect(e);
+            Toast.makeText(this, "connected to " + address + ":" + PORT, Toast.LENGTH_SHORT).show();
+            doSync(s.getOutputStream(), s.getInputStream());
+            s.close();
+        } catch (IOException ex){
+            ex.printStackTrace();
+            Toast.makeText(this, "could not connect to " + address + ":" + PORT, Toast.LENGTH_LONG).show();
+        }
+        isSyncing = false;
+    }
+
     private WifiP2pManager.ConnectionInfoListener connectionInfoListener = new WifiP2pManager.ConnectionInfoListener() {
         @Override
         public void onConnectionInfoAvailable(WifiP2pInfo info) {
-            String groupOwnerAddress = info.groupOwnerAddress.getHostAddress();
-            if(isSyncing){
-                // todo connect, handshake (check password) / dialog on other site with password
-
-            }
+           wifiP2pInfo = info;
+           if(!isSyncing) syncWithDevice();
         }
     };
 
@@ -134,15 +276,27 @@ public class SyncActivity extends AppCompatActivity {
                 NetworkInfo networkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                 if(networkInfo.isConnected()) p2pManager.requestConnectionInfo(channel, connectionInfoListener);
             } else if(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)){
-                thisDevice = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
+                // thisDevice = intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
             }
         }
+    }
+
+    private void initDB(){
+        Intent i = getIntent();
+        RealmConfiguration.Builder rcb = new RealmConfiguration.Builder();
+        if(i.hasExtra("encryptionKey")) {
+            byte[] key = getIntent().getByteArrayExtra("encryptionKey");
+            if(key != null) rcb.encryptionKey(key);
+        }
+        realm = Realm.getInstance(rcb.build());
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sync);
+
+        initDB();
 
         ButterKnife.bind(this);
         recyclerRemoteDevices.setLayoutManager(new LinearLayoutManager(this));
@@ -167,14 +321,16 @@ public class SyncActivity extends AppCompatActivity {
             return;
         }
 
+        syncConfiguration = cfg;
+
         WifiP2pConfig c = new WifiP2pConfig();
         c.deviceAddress = cfg.getDevice().deviceAddress;
         c.wps.setup = WpsInfo.PBC;
         p2pManager.connect(channel, c, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                isSyncing = true;
                 Log.d(LOG_TAG, "connected to device");
+                if(wifiP2pInfo != null && !isSyncing) syncWithDevice();
             }
 
             @Override
@@ -188,6 +344,17 @@ public class SyncActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventSelectedWifiP2pDevice(EventSelectedWifiP2pDevice e){
         new SyncDialog(this, e.getObject()).show();
+    }
+
+    // https://stackoverflow.com/questions/21898456/get-android-wifi-net-hostname-from-code
+    public static String getHostName(String defValue) {
+        try {
+            Method getString = Build.class.getDeclaredMethod("getString", String.class);
+            getString.setAccessible(true);
+            return getString.invoke(null, "net.hostname").toString();
+        } catch (Exception ex) {
+            return defValue;
+        }
     }
 
     @Override

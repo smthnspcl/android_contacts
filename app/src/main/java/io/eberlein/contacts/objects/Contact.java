@@ -1,13 +1,16 @@
 package io.eberlein.contacts.objects;
 
 import java.util.Date;
+import java.util.UUID;
 
 import io.realm.Realm;
 import io.realm.RealmList;
 import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
 
 
 public class Contact extends RealmObject{
+    private String uuid;
     private boolean middleNameDisplayed;
     private String firstName;
     private String middleName;
@@ -19,6 +22,14 @@ public class Contact extends RealmObject{
     private RealmList<PhoneNumber> phoneNumbers;
     private RealmList<EmailAddress> emailAddresses;
     private RealmList<Note> notes;
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
 
     public String getFirstName() {
         return firstName;
@@ -126,6 +137,7 @@ public class Contact extends RealmObject{
     public static Contact create(Realm realm){
         realm.beginTransaction();
         Contact r = realm.createObject(Contact.class);
+        r.setUuid(UUID.randomUUID().toString());
         realm.commitTransaction();
         return r;
     }
