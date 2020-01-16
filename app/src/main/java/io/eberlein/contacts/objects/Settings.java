@@ -15,12 +15,21 @@ public class Settings extends RealmObject {
     private String encryptionKey;
     private String encryptionSalt;
     private boolean discoverable;
-    private boolean showMiddleName;
+    private int syncPort;
 
     public Settings(){
         firstRun = true;
         encrypted = false;
         masterKeyGenerated = false;
+        syncPort = 4337;
+    }
+
+    public int getSyncPort() {
+        return syncPort;
+    }
+
+    public void setSyncPort(int syncPort) {
+        this.syncPort = syncPort;
     }
 
     public boolean isEncrypted() {

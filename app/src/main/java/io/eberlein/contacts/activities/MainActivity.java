@@ -13,8 +13,6 @@ import com.blankj.utilcode.util.FragmentUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
-import java.io.UnsupportedEncodingException;
-import java.security.GeneralSecurityException;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;

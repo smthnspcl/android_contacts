@@ -11,8 +11,8 @@ import org.greenrobot.eventbus.EventBus;
 
 import butterknife.BindView;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.objects.SyncConfiguration;
-import io.eberlein.contacts.objects.events.EventSync;
+import io.eberlein.contacts.objects.ClientSyncConfiguration;
+import io.eberlein.contacts.objects.events.EventClientSync;
 
 
 public class SyncDialog extends BaseDialog<WifiP2pDevice> {
@@ -34,11 +34,12 @@ public class SyncDialog extends BaseDialog<WifiP2pDevice> {
                             Toast.makeText(getContext(), "cant encrypt without a password", Toast.LENGTH_LONG).show();
                         }
                         if(encrypt.isChecked() && !password.getText().toString().isEmpty() || !encrypt.isChecked()) {
-                            SyncConfiguration c = new SyncConfiguration();
-                            c.setDevice(getObject());
-                            c.setEncrypted(encrypt.isChecked());
-                            c.setInteractive(interactive.isChecked());
-                            EventBus.getDefault().post(new EventSync(c));
+                            ClientSyncConfiguration c = new ClientSyncConfiguration(
+                                    getObject(),
+                                    interactive.isChecked(),
+                                    password.getText().toString()
+                            );
+                            EventBus.getDefault().post(new EventClientSync(c));
                             dialog.dismiss();
                         }
                     }

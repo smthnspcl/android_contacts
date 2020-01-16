@@ -2,10 +2,10 @@ package io.eberlein.contacts;
 
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
-
 import io.eberlein.contacts.objects.Settings;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
+
 
 public class Static {
     public static Realm getRealm(Settings settings, String password){

@@ -12,7 +12,7 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
-import android.os.Build;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -27,25 +27,29 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.alibaba.fastjson.JSON;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.gson.JsonObject;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.http.AsyncHttpResponse;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
+import com.koushikdutta.async.http.body.JSONObjectBody;
+import com.koushikdutta.async.http.callback.HttpConnectCallback;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.koushikdutta.async.http.server.HttpServerRequestCallback;
+import com.koushikdutta.ion.Ion;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONObject;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -54,15 +58,14 @@ import butterknife.OnClick;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.dialogs.SyncDialog;
+import io.eberlein.contacts.objects.ClientSyncConfiguration;
 import io.eberlein.contacts.objects.Contact;
-import io.eberlein.contacts.objects.SyncConfiguration;
 import io.eberlein.contacts.objects.events.EventSelectedWifiP2pDevice;
-import io.eberlein.contacts.objects.events.EventSync;
+import io.eberlein.contacts.objects.events.EventClientSync;
 import io.eberlein.contacts.viewholders.VHWifiP2pDevice;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
-import static android.net.wifi.p2p.WifiP2pManager.P2P_UNSUPPORTED;
 
 
 // todo find out if device is capable of wifi direct
@@ -78,18 +81,25 @@ manager.requestGroupInfo(channel, new GroupInfoListener() {
  */
 
 public class SyncActivity extends AppCompatActivity {
-    private Realm realm;
     private static final String LOG_TAG = "SyncActivity";
+    private Realm realm;
+    private int hostPort;
+    private String serviceName;
+
+    private AsyncHttpServer server;
+
+    private ClientSyncConfiguration clientSyncConfiguration;
+
     private boolean isScanning = false;
     private boolean isSyncing = false;
+
     private WifiP2pManager p2pManager;
     private WifiP2pManager.Channel channel;
     private IntentFilter p2pIntentFilter = new IntentFilter();
-    private BroadcastReceiver wifiP2pBroadcastReceiver;
     private VHAdapter adapter;
     private List<WifiP2pDevice> p2pDevices;
-    private ServerSocket serverSocket;
-    private SyncConfiguration syncConfiguration;
+
+    private BroadcastReceiver wifiP2pBroadcastReceiver;
     private WifiP2pInfo wifiP2pInfo;
 
     @BindView(R.id.rv_remote_devices)
@@ -108,46 +118,27 @@ public class SyncActivity extends AppCompatActivity {
     void onCheckedChangedIsHost(){
         if(isHost.isChecked()) {
             searchBtn.hide();
-            createServerSocket();
+            createServer();
+
         } else {
             searchBtn.show();
-            destroyServerSocket();
+            server.stop();
         }
     }
 
-    private WifiP2pManager.ActionListener addLocalServiceListener = new WifiP2pManager.ActionListener() {
-        @Override
-        public void onSuccess() {
-
-        }
-
-        @Override
-        public void onFailure(int reason) {
-            if(reason == P2P_UNSUPPORTED) Toast.makeText(getApplicationContext(), "p2p is not supported on this device", Toast.LENGTH_SHORT).show();
-        }
-    };
-
-    private void destroyServerSocket(){
-        p2pManager.clearLocalServices(channel, addLocalServiceListener);
-        try {
-            if (serverSocket != null) serverSocket.close();
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    private void createServerSocket(){
-        try {
-            serverSocket = new ServerSocket(4337); // 0 todo
-        } catch (IOException e){
-            e.printStackTrace();
-            Toast.makeText(this, "could not open server port", Toast.LENGTH_SHORT).show();
-        }
-        Map<String, String> serviceRecord = new HashMap<>();
-        serviceRecord.put("listenport", String.valueOf(serverSocket.getLocalPort()));
-        serviceRecord.put("name", getHostName("contactSyncHost"));
-        WifiP2pDnsSdServiceInfo serviceInfo = WifiP2pDnsSdServiceInfo.newInstance("_contacts", "_presence._tcp", serviceRecord);
-        p2pManager.addLocalService(channel, serviceInfo, addLocalServiceListener);
+    private void createServer(){
+        server = new AsyncHttpServer();
+        server.post("/contact", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                if(request.getBody() instanceof JSONObjectBody){
+                    JSONObjectBody body = (JSONObjectBody) request.getBody();
+                    JSONObject obj = body.get();
+                    Log.d(LOG_TAG, obj.toString()); // todo
+                }
+            }
+        });
+        server.listen(hostPort);
     }
 
     @OnClick(R.id.btn_search_devices)
@@ -192,60 +183,27 @@ public class SyncActivity extends AppCompatActivity {
         }
     };
 
-    private void tryWriteOutputStream(OutputStream os, byte[] data){
-        try {
-            os.write(data);
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    // NetworkOnMainThreadException
-    private void doSync(OutputStream os, InputStream is){
-        tryWriteOutputStream(os, "START".getBytes(StandardCharsets.UTF_8));
-        for(Contact c : realm.where(Contact.class).findAll()){
-            Log.d(LOG_TAG, "syncing: " + c.getName());
-            tryWriteOutputStream(os, JSON.toJSONString(c).getBytes(StandardCharsets.UTF_8));
-        }
-        tryWriteOutputStream(os, "END".getBytes(StandardCharsets.UTF_8));
-        byte[] in = new byte[4096];
-        try {
-            while (is.read(in) != -1){
-                String strData = new String(in);
-                if(strData.equals("END")) break;
-                if(strData.equals("START")) continue;
-                Contact c = JSON.parseObject(strData, Contact.class);
-                Contact ec = realm.where(Contact.class).equalTo("uuid", c.getUuid()).findFirst();
-                Log.d(LOG_TAG, "doSync: remote: " + c.getName() + " : " + c.getLastModifiedDate());
-                Log.d(LOG_TAG, "doSync: local:  " + (ec != null));
-                if(ec == null) realm.copyToRealm(c);
-                else if(ec.getLastModifiedDate().before(c.getLastModifiedDate())) realm.copyToRealmOrUpdate(c);
-            }
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    private void syncWithDevice(){
-        if(syncConfiguration == null){
+    private void startClientSync(){
+        if(clientSyncConfiguration == null){
             Log.wtf(LOG_TAG, "syncWithDevice:syncConfiguration == null");
             return;
         }
         isSyncing = true;
-        String address = wifiP2pInfo.groupOwnerAddress.getHostAddress(); // gethostname?
-        // todo get port via settings
-        int PORT = 4337;
-        Log.d(LOG_TAG, "creating socketaddress for " + address + ":" + PORT);
-        SocketAddress e = new InetSocketAddress(address, PORT);
-        Socket s = new Socket();
-        try {
-            s.connect(e);
-            Toast.makeText(this, "connected to " + address + ":" + PORT, Toast.LENGTH_SHORT).show();
-            doSync(s.getOutputStream(), s.getInputStream());
-            s.close();
-        } catch (IOException ex){
-            ex.printStackTrace();
-            Toast.makeText(this, "could not connect to " + address + ":" + PORT, Toast.LENGTH_LONG).show();
+        for(Contact c : realm.where(Contact.class).findAll()) {
+            Ion.with(this)
+                    .load("")
+                    .setJsonPojoBody(c)
+                    .asString()
+                    .setCallback(new FutureCallback<String>() {
+                        @Override
+                        public void onCompleted(Exception e, String result) {
+                            Contact nc = JSON.parseObject(result, Contact.class);
+                            if(clientSyncConfiguration.isInteractive()){
+                                // todo show difference to user
+                            } else c.sync(nc);
+                        }
+                    });
+
         }
         isSyncing = false;
     }
@@ -254,7 +212,7 @@ public class SyncActivity extends AppCompatActivity {
         @Override
         public void onConnectionInfoAvailable(WifiP2pInfo info) {
            wifiP2pInfo = info;
-           if(!isSyncing) syncWithDevice();
+           if(!isSyncing) startClientSync();
         }
     };
 
@@ -314,23 +272,17 @@ public class SyncActivity extends AppCompatActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventSync(EventSync e){
-        SyncConfiguration cfg = e.getObject();
-        if(cfg.isInvalid()) {
-            Toast.makeText(getApplicationContext(), "sync configuration invalid", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        syncConfiguration = cfg;
+    public void onEventSync(EventClientSync e){
+       clientSyncConfiguration = e.getObject();
 
         WifiP2pConfig c = new WifiP2pConfig();
-        c.deviceAddress = cfg.getDevice().deviceAddress;
+        c.deviceAddress = clientSyncConfiguration.getDevice().deviceAddress;
         c.wps.setup = WpsInfo.PBC;
         p2pManager.connect(channel, c, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
                 Log.d(LOG_TAG, "connected to device");
-                if(wifiP2pInfo != null && !isSyncing) syncWithDevice();
+                if(wifiP2pInfo != null && !isSyncing) startClientSync();
             }
 
             @Override
@@ -344,17 +296,6 @@ public class SyncActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventSelectedWifiP2pDevice(EventSelectedWifiP2pDevice e){
         new SyncDialog(this, e.getObject()).show();
-    }
-
-    // https://stackoverflow.com/questions/21898456/get-android-wifi-net-hostname-from-code
-    public static String getHostName(String defValue) {
-        try {
-            Method getString = Build.class.getDeclaredMethod("getString", String.class);
-            getString.setAccessible(true);
-            return getString.invoke(null, "net.hostname").toString();
-        } catch (Exception ex) {
-            return defValue;
-        }
     }
 
     @Override

@@ -34,5 +34,6 @@
             </intent-filter>
         </activity>
         <activity android:name=".activities.SyncActivity"/>
+        <service android:name=".services.SyncService"/>
     </application>
 </manifest>
