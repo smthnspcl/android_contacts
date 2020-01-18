@@ -36,4 +36,10 @@
     <string name="interactive">interactive</string>
     <string name="sync_question">sync contacts with this device?</string>
     <string name="is_host">is host</string>
+    <string name="ok">ok</string>
+    <string name="host_server">host server</string>
+    <string name="could_not_create_server">could not create server</string>
+    <string name="created_server">created_server</string>
+    <string name="no_bluetooth_support">this device does not support bluetooth</string>
+    <string name="unable_sync_contacts">without bluetooth you will not be able to synchronize your contacts between your devices</string>
 </resources>

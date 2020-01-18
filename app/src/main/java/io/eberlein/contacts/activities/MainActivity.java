@@ -1,8 +1,10 @@
 package io.eberlein.contacts.activities;
 
 import android.Manifest;
-import android.content.Intent;
+import android.content.DialogInterface;
 import android.os.Bundle;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import android.view.Menu;
@@ -10,12 +12,14 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 import com.blankj.utilcode.util.FragmentUtils;
+
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.eberlein.contacts.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.dialogs.AddressDialog;
 import io.eberlein.contacts.dialogs.ContactDialog;
@@ -38,9 +42,8 @@ import io.eberlein.contacts.ui.FragmentContacts;
 import io.eberlein.contacts.ui.FragmentDecrypt;
 import io.eberlein.contacts.ui.FragmentEncrypt;
 import io.eberlein.contacts.ui.FragmentSettings;
+import io.eberlein.contacts.ui.FragmentSync;
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
-
 import static io.eberlein.contacts.Static.getRealm;
 
 
@@ -51,22 +54,40 @@ import static io.eberlein.contacts.Static.getRealm;
 public class MainActivity extends AppCompatActivity {
     private Realm realm;
     private boolean showOptionsMenu = false;
+    private boolean showOptionsMenuSync = true;
 
     @BindView(R.id.toolbar) Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        BT.init(this);
         Realm.init(this);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         setSupportActionBar(toolbar);
 
         requestPermissions(new String[]{
-                Manifest.permission.ACCESS_WIFI_STATE,
-                Manifest.permission.CHANGE_WIFI_STATE,
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.INTERNET}, 420);
+        }, 420);
+
+        if(BT.supported()){
+            requestPermissions(new String[]{
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.BLUETOOTH_ADMIN
+                    }, 420);
+        } else {
+            showOptionsMenuSync = false;
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.no_bluetooth_support)
+                    .setMessage(R.string.unable_sync_contacts)
+                    .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+        }
     }
 
     @Override
@@ -85,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        BT.uninit(this);
         realm.close();
     }
 
@@ -172,7 +194,13 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_main, menu);
-        for(int i=0; i<menu.size(); i++) menu.getItem(i).setVisible(showOptionsMenu);
+        for(int i=0; i<menu.size(); i++) {
+            if(menu.getItem(i).getTitle().toString().equals(getString(R.string.sync)) && !showOptionsMenuSync) {
+                menu.getItem(i).setVisible(false);
+            } else {
+                menu.getItem(i).setVisible(showOptionsMenu);
+            }
+        }
         return true;
     }
 
@@ -183,9 +211,7 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host, true);
         } else if(id == R.id.action_sync) {
-            Intent i = new Intent(this, SyncActivity.class);
-            i.putExtra("encryptionKey", realm.getConfiguration().getEncryptionKey());
-            startActivity(i);
+            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(realm), R.id.fragment_host, true);
         }
 
         return super.onOptionsItemSelected(item);

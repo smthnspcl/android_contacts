@@ -36,4 +36,5 @@ public class VHAdapter<T, V extends VH<T>> extends RecyclerView.Adapter<V> {
     public int getItemCount() {
         return data.size();
     }
+
 }

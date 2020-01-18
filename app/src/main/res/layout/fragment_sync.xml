@@ -3,10 +3,10 @@
     android:layout_width="match_parent" android:layout_height="match_parent">
 
     <CheckBox
-        android:id="@+id/cb_is_host"
+        android:id="@+id/cb_server"
+        android:text="@string/host_server"
         android:layout_marginTop="8dp"
         android:layout_marginStart="8dp"
-        android:text="@string/is_host"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
@@ -22,7 +22,8 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_remote_devices"
-        android:layout_below="@id/cb_is_host"
+        android:layout_below="@id/cb_server"
+        android:layout_marginTop="8dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
