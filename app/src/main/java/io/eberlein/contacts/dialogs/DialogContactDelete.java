@@ -6,8 +6,8 @@ import androidx.annotation.NonNull;
 
 import io.eberlein.contacts.objects.Contact;
 
-public class DeleteContactDialog extends DeleteDialog<Contact> {
-    public DeleteContactDialog(@NonNull Context context, @NonNull Contact contact){
+public class DialogContactDelete extends DialogDelete<Contact> {
+    public DialogContactDelete(@NonNull Context context, @NonNull Contact contact){
         super(context, contact);
     }
 

@@ -21,11 +21,11 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.eberlein.contacts.BT;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.dialogs.AddressDialog;
-import io.eberlein.contacts.dialogs.ContactDialog;
-import io.eberlein.contacts.dialogs.EmailAddressDialog;
-import io.eberlein.contacts.dialogs.NoteDialog;
-import io.eberlein.contacts.dialogs.PhoneNumberDialog;
+import io.eberlein.contacts.dialogs.DialogBaseAddress;
+import io.eberlein.contacts.dialogs.DialogBaseContact;
+import io.eberlein.contacts.dialogs.DialogBaseEmailAddress;
+import io.eberlein.contacts.dialogs.DialogBaseNote;
+import io.eberlein.contacts.dialogs.DialogBasePhoneNumber;
 import io.eberlein.contacts.objects.Settings;
 import io.eberlein.contacts.objects.events.EventDeleteAddress;
 import io.eberlein.contacts.objects.events.EventDeleteContact;
@@ -120,27 +120,27 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogContact(EventSelectedContact e){
-        new ContactDialog(this, e.getObject()).show();
+        new DialogBaseContact(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogAddress(EventSelectedAddress e){
-        new AddressDialog(this, e.getObject()).show();
+        new DialogBaseAddress(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogEmailAddress(EventSelectedEmailAddress e){
-        new EmailAddressDialog(this, e.getObject()).show();
+        new DialogBaseEmailAddress(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogPhoneNumber(EventSelectedPhoneNumber e){
-        new PhoneNumberDialog(this, e.getObject()).show();
+        new DialogBasePhoneNumber(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventOpenDialogNote(EventSelectedNote e){
-        new NoteDialog(this, e.getObject()).show();
+        new DialogBaseNote(this, e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

@@ -1,21 +1,21 @@
 package io.eberlein.contacts.objects;
 
-import android.net.wifi.p2p.WifiP2pDevice;
+import android.bluetooth.BluetoothDevice;
 
 import androidx.annotation.Nullable;
 
 public class ClientSyncConfiguration {
     private String encryptionKey;
     private boolean isInteractive;
-    private WifiP2pDevice device;
+    private BluetoothDevice device;
 
-    public ClientSyncConfiguration(WifiP2pDevice device, boolean isInteractive, @Nullable String encryptionKey){
+    public ClientSyncConfiguration(BluetoothDevice device, boolean isInteractive, @Nullable String encryptionKey){
         this.device = device;
         this.encryptionKey = encryptionKey;
         this.isInteractive = isInteractive;
     }
 
-    public WifiP2pDevice getDevice() {
+    public BluetoothDevice getDevice() {
         return device;
     }
 

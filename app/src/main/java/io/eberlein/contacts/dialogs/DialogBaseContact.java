@@ -30,7 +30,7 @@ import io.realm.Realm;
 
 // todo option to set picture as dialog background
 
-public class ContactDialog extends BaseDialog<Contact>{
+public class DialogBaseContact extends DialogBase<Contact> {
     @BindView(R.id.et_firstName) EditText firstName;
     @BindView(R.id.et_middleName) EditText middleName;
     @BindView(R.id.cb_show_middle_name) CheckBox displayMiddleName;
@@ -67,7 +67,7 @@ public class ContactDialog extends BaseDialog<Contact>{
         r.beginTransaction();
         contact.getAddresses().add(address);
         r.commitTransaction();
-        new AddressDialog(getContext(), address).show();
+        new DialogBaseAddress(getContext(), address).show();
     }
 
     @OnClick(R.id.btn_add_phone_number)
@@ -78,7 +78,7 @@ public class ContactDialog extends BaseDialog<Contact>{
         r.beginTransaction();
         contact.getPhoneNumbers().add(phoneNumber);
         r.commitTransaction();
-        new PhoneNumberDialog(getContext(), phoneNumber).show();
+        new DialogBasePhoneNumber(getContext(), phoneNumber).show();
     }
 
     @OnClick(R.id.btn_add_email_address)
@@ -89,7 +89,7 @@ public class ContactDialog extends BaseDialog<Contact>{
         r.beginTransaction();
         contact.getEmailAddresses().add(emailAddress);
         r.commitTransaction();
-        new EmailAddressDialog(getContext(), emailAddress).show();
+        new DialogBaseEmailAddress(getContext(), emailAddress).show();
     }
 
     @OnClick(R.id.btn_add_note)
@@ -100,11 +100,11 @@ public class ContactDialog extends BaseDialog<Contact>{
         r.beginTransaction();
         contact.getNotes().add(note);
         r.commitTransaction();
-        new NoteDialog(getContext(), note).show();
+        new DialogBaseNote(getContext(), note).show();
     }
 
 
-    public ContactDialog(Context context, Contact contact){
+    public DialogBaseContact(Context context, Contact contact){
         super(context, contact, R.layout.dialog_contact);
     }
 

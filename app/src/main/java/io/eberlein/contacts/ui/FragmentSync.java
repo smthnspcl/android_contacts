@@ -21,14 +21,16 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.alibaba.fastjson.JSON;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +43,11 @@ import butterknife.OnClick;
 import io.eberlein.contacts.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
+import io.eberlein.contacts.dialogs.DialogBaseSyncConfiguration;
+import io.eberlein.contacts.objects.Contact;
+import io.eberlein.contacts.objects.events.EventClientSync;
 import io.eberlein.contacts.objects.events.EventSelectedBluetoothDevice;
+import io.eberlein.contacts.objects.events.EventSentContact;
 import io.eberlein.contacts.viewholders.VHBluetoothDevice;
 import io.realm.Realm;
 
@@ -90,19 +96,74 @@ public class FragmentSync extends Fragment {
         }
     };
 
-    private void sync(BluetoothSocket socket){
-        boolean isServer = hostServer.isChecked();
-        try {
-            OutputStream os = socket.getOutputStream();
-            InputStream is = socket.getInputStream();
+    private class SyncThread extends Thread {
+        private static final String MSG_END = "END OF TRANSMISSION";
+        private BluetoothSocket socket;
+        private boolean isServer;
 
-            if(!isServer) {
-
-            }
-
-        } catch (IOException e){
-            e.printStackTrace();
+        SyncThread(BluetoothSocket socket, boolean isServer){
+            this.socket = socket;
+            this.isServer = isServer;
         }
+
+        private void syncContact(Contact nc){
+            Contact oc = realm.where(Contact.class).equalTo("uuid", nc.getUuid()).findFirst();
+            if(oc == null) realm.copyToRealm(nc);
+            else oc.sync(nc);
+        }
+
+        private void read(BufferedReader br){
+            boolean done = false;
+            while(!done) {
+                try {
+                    for (String line; (line = br.readLine()) != null; ) {
+                        if(line.equals(MSG_END)) done = true;
+                        else syncContact(JSON.parseObject(line, Contact.class));
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private void writeFlush(OutputStream os, String data){
+            try {
+                os.write(data.getBytes());
+                os.flush();
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+
+        private void write(OutputStream os){
+            for(Contact c : realm.where(Contact.class).findAll()){
+                writeFlush(os, JSON.toJSONString(c));
+                EventBus.getDefault().post(new EventSentContact(c));
+            }
+            writeFlush(os, MSG_END);
+        }
+
+        @Override
+        public void run() {
+            try {
+                OutputStream os = socket.getOutputStream();
+                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                if(isServer) {
+                    read(br);
+                    write(os);
+                } else {
+                    write(os);
+                    read(br);
+                }
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void sync(BluetoothSocket socket){
+        SyncThread st = new SyncThread(socket, hostServer.isChecked());
+        st.run();
     }
 
     private class Server extends BT.Server {
@@ -135,6 +196,7 @@ public class FragmentSync extends Fragment {
             server = new Server();
         } else {
             server.stopServer();
+            makeDiscoverableHandler.removeCallbacks(makeDiscoverable);
         }
     }
 
@@ -163,7 +225,13 @@ public class FragmentSync extends Fragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventSelectedBluetoothDevice(EventSelectedBluetoothDevice e){
-        sync(BT.connect(e.getObject(), SERVICE_UUID));
+        new DialogBaseSyncConfiguration(getContext(), e.getObject()).show();
+        // sync(BT.connect(e.getObject(), SERVICE_UUID));
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventClientSync(EventClientSync e){
+
     }
 
     @Override

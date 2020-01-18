@@ -7,12 +7,12 @@ import android.view.View;
 
 import butterknife.ButterKnife;
 
-public class BaseDialog<T> {
+public class DialogBase<T> {
     private Context context;
     private T object;
     AlertDialog.Builder builder;
 
-    public BaseDialog(Context context, T object, int layout){
+    public DialogBase(Context context, T object, int layout){
         this.context = context;
         this.object = object;
         View v = LayoutInflater.from(context).inflate(layout, null, false);

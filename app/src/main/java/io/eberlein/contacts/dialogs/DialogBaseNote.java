@@ -8,11 +8,11 @@ import butterknife.BindView;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.objects.Note;
 
-public class NoteDialog extends BaseDialog<Note> {
+public class DialogBaseNote extends DialogBase<Note> {
     @BindView(R.id.et_name) EditText name;
     @BindView(R.id.et_note) EditText note;
 
-    public NoteDialog(Context context, Note note){
+    public DialogBaseNote(Context context, Note note){
         super(context, note, R.layout.dialog_note);
     }
 

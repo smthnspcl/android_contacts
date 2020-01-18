@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 import io.eberlein.contacts.interfaces.DeleteDialogInterface;
 import io.realm.RealmObject;
 
-public class DeleteDialog<T extends RealmObject> implements DeleteDialogInterface<T> {
+public class DialogDelete<T extends RealmObject> implements DeleteDialogInterface<T> {
     protected T object;
     private Context context;
 
@@ -24,7 +24,7 @@ public class DeleteDialog<T extends RealmObject> implements DeleteDialogInterfac
 
     }
 
-    public DeleteDialog(@NonNull Context context, @NonNull T object){
+    public DialogDelete(@NonNull Context context, @NonNull T object){
         this.context = context;
         this.object = object;
     }
