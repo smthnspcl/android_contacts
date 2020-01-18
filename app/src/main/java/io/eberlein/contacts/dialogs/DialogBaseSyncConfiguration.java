@@ -21,7 +21,7 @@ public class DialogBaseSyncConfiguration extends DialogBase<BluetoothDevice> {
     @BindView(R.id.et_password) EditText password;
 
     public DialogBaseSyncConfiguration(Context context, BluetoothDevice device){
-        super(context, device, R.layout.dialog_sync);
+        super(context, device, R.layout.dialog_sync_configuration);
     }
 
     @Override
