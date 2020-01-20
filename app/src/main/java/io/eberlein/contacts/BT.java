@@ -9,11 +9,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 
+import com.blankj.utilcode.util.GsonUtils;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import io.eberlein.contacts.objects.Contact;
 
 
 public class BT {
@@ -149,9 +157,8 @@ public class BT {
         void onServerSocketCreateException(IOException e);
     }
 
-    public static abstract class Server extends Thread implements ServerInterface {
+    public static abstract class Server extends AsyncTask<Void, Void, Void> implements ServerInterface {
         private BluetoothServerSocket serverSocket;
-        private boolean doRun = false;
 
         public Server(String name, UUID uuid){
             createServerSocket(name, uuid);
@@ -160,8 +167,7 @@ public class BT {
         @Override
         public void createServerSocket(String name, UUID uuid) {
             try{
-                serverSocket = adapter.listenUsingRfcommWithServiceRecord(name, uuid);
-                doRun = true;
+                serverSocket = adapter.listenUsingInsecureRfcommWithServiceRecord(name, uuid);
                 onServerSocketCreated();
             } catch (IOException e){
                 onServerSocketCreateException(e);
@@ -181,7 +187,6 @@ public class BT {
         @Override
         public void onAcceptException(IOException e) {
             e.printStackTrace();
-            doRun = false;
         }
 
         @Override
@@ -209,17 +214,79 @@ public class BT {
         }
 
         @Override
-        public void run() {
-            BluetoothSocket socket = null;
-            while (doRun){
-                socket = acceptServerSocket();
-                if(socket != null) manageSocket(socket);
-            }
-            closeServerSocket();
+        protected Void doInBackground(Void... voids) {
+            run();
+            return null;
         }
 
-        public void stopServer(){
-            doRun = false;
+        void run() {
+            BluetoothSocket socket = acceptServerSocket();
+            if(socket != null) manageSocket(socket);
+            closeServerSocket();
+        }
+    }
+
+    interface ClientInterface {
+        void write(OutputStream os);
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    public static abstract class Client<T> extends AsyncTask<Void, Void, Void> implements ClientInterface {
+        private BluetoothSocket socket;
+        private boolean isServer;
+        private List<T> received;
+
+        public Client(BluetoothSocket socket, boolean isServer){
+            this.socket = socket;
+            this.isServer = isServer;
+            received = new ArrayList<>();
+        }
+
+        public void read(BufferedReader br){
+            try {
+                for (String line; (line = br.readLine()) != null; ) {
+                    received = GsonUtils.fromJson(line, GsonUtils.getListType(Contact.class));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void writeFlush(OutputStream os, String data){
+            try {
+                os.write(data.getBytes());
+                os.flush();
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+
+        void run() {
+            try {
+                OutputStream os = socket.getOutputStream();
+                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                if(isServer) {
+                    read(br);
+                    write(os);
+                } else {
+                    write(os);
+                    read(br);
+                }
+                os.close();
+                br.close();
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            run();
+            return null;
+        }
+
+        public List<T> getReceived() {
+            return received;
         }
     }
 }

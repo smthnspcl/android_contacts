@@ -6,29 +6,27 @@ import android.widget.EditText;
 
 import butterknife.BindView;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.objects.Note;
+import io.eberlein.contacts.objects.EmailAddress;
 
-public class DialogBaseNote extends DialogBase<Note> {
+public class DialogEmailAddress extends DialogBase<EmailAddress> {
     @BindView(R.id.et_name) EditText name;
-    @BindView(R.id.et_note) EditText note;
+    @BindView(R.id.et_email) EditText email;
 
-    public DialogBaseNote(Context context, Note note){
-        super(context, note, R.layout.dialog_note);
-    }
+    public DialogEmailAddress(Context context, EmailAddress emailAddress){super(context, emailAddress, R.layout.dialog_email_address);}
 
     @Override
     public void show() {
-        Note n = getObject();
-        name.setText(n.getName());
-        note.setText(n.getNote());
-        builder.setTitle("note")
+        EmailAddress emailAddress = getObject();
+        name.setText(emailAddress.getName());
+        email.setText(emailAddress.getEmail());
+        builder.setTitle("email address")
                 .setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        n.getRealm().beginTransaction();
-                        n.setName(name.getText().toString());
-                        n.setNote(note.getText().toString());
-                        n.getRealm().commitTransaction();
+                        emailAddress.getRealm().beginTransaction();
+                        emailAddress.setName(name.getText().toString());
+                        emailAddress.setEmail(email.getText().toString());
+                        emailAddress.getRealm().commitTransaction();
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {

@@ -8,7 +8,7 @@ import butterknife.BindView;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.objects.Address;
 
-public class DialogBaseAddress extends DialogBase<Address> {
+public class DialogAddress extends DialogBase<Address> {
 
     @BindView(R.id.et_name) EditText name;
     @BindView(R.id.et_street) EditText street;
@@ -17,7 +17,7 @@ public class DialogBaseAddress extends DialogBase<Address> {
     @BindView(R.id.et_city) EditText city;
     @BindView(R.id.et_notes) EditText notes;
 
-    public DialogBaseAddress(Context context, Address address){
+    public DialogAddress(Context context, Address address){
         super(context, address, R.layout.dialog_address);
     }
 

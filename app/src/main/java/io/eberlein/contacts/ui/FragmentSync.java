@@ -1,5 +1,6 @@
 package io.eberlein.contacts.ui;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,16 +23,14 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.alibaba.fastjson.JSON;
+import com.blankj.utilcode.util.GsonUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,23 +43,31 @@ import butterknife.OnClick;
 import io.eberlein.contacts.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
-import io.eberlein.contacts.dialogs.DialogBaseSyncConfiguration;
+import io.eberlein.contacts.dialogs.DialogSyncConfiguration;
+import io.eberlein.contacts.dialogs.DialogSyncInteractive;
+import io.eberlein.contacts.dialogs.DialogSyncNonInteractive;
+import io.eberlein.contacts.objects.ClientSyncConfiguration;
 import io.eberlein.contacts.objects.Contact;
 import io.eberlein.contacts.objects.events.EventClientSync;
 import io.eberlein.contacts.objects.events.EventSelectedBluetoothDevice;
-import io.eberlein.contacts.objects.events.EventSentContact;
+import io.eberlein.contacts.objects.events.EventSyncFinished;
 import io.eberlein.contacts.viewholders.VHBluetoothDevice;
 import io.realm.Realm;
 
 
 public class FragmentSync extends Fragment {
+    private static final String TAG = "FragmentService";
+
     private static final String SERVICE_NAME = "contactSyncServer";
     private static final UUID SERVICE_UUID = UUID.fromString("2b61e90c-161b-4683-b197-d8129f0fa8d0");
     private static final int DISCOVERABLE_TIME = 420;
-    private Server server;
     private Realm realm;
     private List<BluetoothDevice> devices;
-    private VHAdapter deviceAdapter;
+    private Context ctx;
+
+    private ClientSyncConfiguration clientSyncConfiguration = null;
+    private Server server;
+    private Client client;
 
     @BindView(R.id.btn_search_devices) FloatingActionButton btnScan;
     @BindView(R.id.rv_remote_devices) RecyclerView deviceRecycler;
@@ -96,76 +104,7 @@ public class FragmentSync extends Fragment {
         }
     };
 
-    private class SyncThread extends Thread {
-        private static final String MSG_END = "END OF TRANSMISSION";
-        private BluetoothSocket socket;
-        private boolean isServer;
-
-        SyncThread(BluetoothSocket socket, boolean isServer){
-            this.socket = socket;
-            this.isServer = isServer;
-        }
-
-        private void syncContact(Contact nc){
-            Contact oc = realm.where(Contact.class).equalTo("uuid", nc.getUuid()).findFirst();
-            if(oc == null) realm.copyToRealm(nc);
-            else oc.sync(nc);
-        }
-
-        private void read(BufferedReader br){
-            boolean done = false;
-            while(!done) {
-                try {
-                    for (String line; (line = br.readLine()) != null; ) {
-                        if(line.equals(MSG_END)) done = true;
-                        else syncContact(JSON.parseObject(line, Contact.class));
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        private void writeFlush(OutputStream os, String data){
-            try {
-                os.write(data.getBytes());
-                os.flush();
-            } catch (IOException e){
-                e.printStackTrace();
-            }
-        }
-
-        private void write(OutputStream os){
-            for(Contact c : realm.where(Contact.class).findAll()){
-                writeFlush(os, JSON.toJSONString(c));
-                EventBus.getDefault().post(new EventSentContact(c));
-            }
-            writeFlush(os, MSG_END);
-        }
-
-        @Override
-        public void run() {
-            try {
-                OutputStream os = socket.getOutputStream();
-                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                if(isServer) {
-                    read(br);
-                    write(os);
-                } else {
-                    write(os);
-                    read(br);
-                }
-            } catch (IOException e){
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void sync(BluetoothSocket socket){
-        SyncThread st = new SyncThread(socket, hostServer.isChecked());
-        st.run();
-    }
-
+    @SuppressLint("StaticFieldLeak")
     private class Server extends BT.Server {
         Server(){
             super(SERVICE_NAME, SERVICE_UUID);
@@ -190,12 +129,33 @@ public class FragmentSync extends Fragment {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
+    private class Client extends BT.Client<Contact> {
+        private List<Contact> sendContacts;
+
+        Client(BluetoothSocket socket, boolean isServer, List<Contact> contacts){
+            super(socket, isServer);
+            sendContacts = contacts;
+        }
+
+        @Override
+        public void write(OutputStream os) {
+            writeFlush(os, GsonUtils.toJson(sendContacts));
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            EventBus.getDefault().post(new EventSyncFinished());
+        }
+    }
+
     @OnCheckedChanged(R.id.cb_server)
     void onCheckedChangedServer(){
         if(hostServer.isChecked()){
             server = new Server();
+            server.execute();
         } else {
-            server.stopServer();
+            server.cancel(true);
             makeDiscoverableHandler.removeCallbacks(makeDiscoverable);
         }
     }
@@ -211,6 +171,7 @@ public class FragmentSync extends Fragment {
     }
 
     public FragmentSync(Realm realm){
+        ctx = getActivity();
         this.realm = realm;
         devices = new ArrayList<>();
     }
@@ -225,13 +186,36 @@ public class FragmentSync extends Fragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventSelectedBluetoothDevice(EventSelectedBluetoothDevice e){
-        new DialogBaseSyncConfiguration(getContext(), e.getObject()).show();
-        // sync(BT.connect(e.getObject(), SERVICE_UUID));
+        new DialogSyncConfiguration(getContext(), e.getObject()).show();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventClientSync(EventClientSync e){
+        clientSyncConfiguration = e.getObject();
+        sync(BT.connect(clientSyncConfiguration.getDevice(), SERVICE_UUID));
+    }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventSyncFinished(EventSyncFinished e){
+        if(hostServer.isChecked()){
+            new DialogSyncNonInteractive(ctx, client.getReceived(), realm).show();
+        } else {
+            if(clientSyncConfiguration.isInteractive()){
+                new DialogSyncInteractive(ctx, client.getReceived(), realm).show();
+            } else {
+                new DialogSyncNonInteractive(ctx, client.getReceived(), realm).show();
+            }
+        }
+    }
+
+    private void sync(BluetoothSocket socket){
+        if(socket != null) {
+            client = new Client(socket, hostServer.isChecked(), null);  // todo fix encrypted
+            client.execute();
+        } else {
+            Toast.makeText(ctx, "socket is null", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "socket is null");
+        }
     }
 
     @Override
@@ -258,7 +242,7 @@ public class FragmentSync extends Fragment {
         View v = inflater.inflate(R.layout.fragment_sync, container, false);
         ButterKnife.bind(this, v);
         deviceRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
-        deviceAdapter = new VHAdapter<>(VHBluetoothDevice.class, devices);
+        VHAdapter deviceAdapter = new VHAdapter<>(VHBluetoothDevice.class, devices);
         deviceRecycler.setAdapter(deviceAdapter);
         return v;
     }

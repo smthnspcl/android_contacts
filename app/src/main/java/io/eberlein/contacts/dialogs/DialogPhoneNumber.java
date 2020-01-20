@@ -8,11 +8,11 @@ import butterknife.BindView;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.objects.PhoneNumber;
 
-public class DialogBasePhoneNumber extends DialogBase<PhoneNumber> {
+public class DialogPhoneNumber extends DialogBase<PhoneNumber> {
     @BindView(R.id.et_name) EditText name;
     @BindView(R.id.et_phone_number) EditText phoneNumber;
 
-    public DialogBasePhoneNumber(Context context, PhoneNumber phoneNumber){super(context, phoneNumber, R.layout.dialog_phone_number);}
+    public DialogPhoneNumber(Context context, PhoneNumber phoneNumber){super(context, phoneNumber, R.layout.dialog_phone_number);}
 
     @Override
     public void show() {

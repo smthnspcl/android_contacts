@@ -15,12 +15,12 @@ import io.eberlein.contacts.objects.ClientSyncConfiguration;
 import io.eberlein.contacts.objects.events.EventClientSync;
 
 
-public class DialogBaseSyncConfiguration extends DialogBase<BluetoothDevice> {
+public class DialogSyncConfiguration extends DialogBase<BluetoothDevice> {
     @BindView(R.id.cb_encrypt) CheckBox encrypt;
     @BindView(R.id.cb_interactive) CheckBox interactive;
     @BindView(R.id.et_password) EditText password;
 
-    public DialogBaseSyncConfiguration(Context context, BluetoothDevice device){
+    public DialogSyncConfiguration(Context context, BluetoothDevice device){
         super(context, device, R.layout.dialog_sync_configuration);
     }
 
