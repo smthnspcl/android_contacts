@@ -139,6 +139,11 @@ public class FragmentSync extends Fragment {
         }
 
         @Override
+        public Contact deserializeData(String data) {
+            return GsonUtils.fromJson(data, GsonUtils.getListType(Contact.class));
+        }
+
+        @Override
         public void write(OutputStream os) {
             writeFlush(os, GsonUtils.toJson(sendContacts));
         }

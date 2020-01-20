@@ -226,12 +226,14 @@ public class BT {
         }
     }
 
-    interface ClientInterface {
+    interface ClientInterface<T> {
         void write(OutputStream os);
+        void read(BufferedReader br);
+        T deserializeData(String data);
     }
 
     @SuppressLint("StaticFieldLeak")
-    public static abstract class Client<T> extends AsyncTask<Void, Void, Void> implements ClientInterface {
+    public static abstract class Client<T> extends AsyncTask<Void, Void, Void> implements ClientInterface<T> {
         private BluetoothSocket socket;
         private boolean isServer;
         private List<T> received;
@@ -245,7 +247,7 @@ public class BT {
         public void read(BufferedReader br){
             try {
                 for (String line; (line = br.readLine()) != null; ) {
-                    received = GsonUtils.fromJson(line, GsonUtils.getListType(Contact.class));
+                    received.add(deserializeData(line));
                 }
             } catch (IOException e) {
                 e.printStackTrace();
