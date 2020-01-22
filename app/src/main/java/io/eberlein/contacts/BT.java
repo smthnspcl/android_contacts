@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.blankj.utilcode.util.GsonUtils;
 
@@ -247,6 +248,7 @@ public class BT {
         public void read(BufferedReader br){
             try {
                 for (String line; (line = br.readLine()) != null; ) {
+                    Log.d("Client", line);
                     received.add(deserializeData(line));
                 }
             } catch (IOException e) {

@@ -18,18 +18,19 @@ public class Static {
     public static Realm getRealm(Settings settings, String password){
         RealmConfiguration.Builder rcb = new RealmConfiguration.Builder();
 
-        if(settings.isEncrypted()){
-            if(password != null && !password.isEmpty()){
+        if(settings.isEncrypted()) {
+            if (password != null && !password.isEmpty()) {
                 try {
                     rcb.encryptionKey(settings.getEncryptionKey(password).getBytes());
-                } catch (GeneralSecurityException | UnsupportedEncodingException e){
+                } catch (GeneralSecurityException | UnsupportedEncodingException e) {
                     e.printStackTrace();
                     return null;
                 }
             }
         }
-
-        return Realm.getInstance(rcb.build());
+        RealmConfiguration rc = rcb.build();
+        Realm.setDefaultConfiguration(rc);
+        return Realm.getInstance(rc);
     }
 
     public static void syncContact(Contact nc, Realm realm){

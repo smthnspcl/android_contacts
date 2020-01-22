@@ -33,6 +33,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -106,6 +107,7 @@ public class FragmentSync extends Fragment {
 
     @SuppressLint("StaticFieldLeak")
     private class Server extends BT.Server {
+
         Server(){
             super(SERVICE_NAME, SERVICE_UUID);
         }
@@ -131,11 +133,8 @@ public class FragmentSync extends Fragment {
 
     @SuppressLint("StaticFieldLeak")
     private class Client extends BT.Client<Contact> {
-        private List<Contact> sendContacts;
-
-        Client(BluetoothSocket socket, boolean isServer, List<Contact> contacts){
+        Client(BluetoothSocket socket, boolean isServer){
             super(socket, isServer);
-            sendContacts = contacts;
         }
 
         @Override
@@ -145,7 +144,7 @@ public class FragmentSync extends Fragment {
 
         @Override
         public void write(OutputStream os) {
-            writeFlush(os, GsonUtils.toJson(sendContacts));
+            writeFlush(os, Realm.getDefaultInstance().where(Contact.class).findAll().asJSON());
         }
 
         @Override
@@ -157,11 +156,13 @@ public class FragmentSync extends Fragment {
     @OnCheckedChanged(R.id.cb_server)
     void onCheckedChangedServer(){
         if(hostServer.isChecked()){
+            btnScan.hide();
             server = new Server();
             server.execute();
         } else {
             server.cancel(true);
             makeDiscoverableHandler.removeCallbacks(makeDiscoverable);
+            btnScan.show();
         }
     }
 
@@ -215,7 +216,7 @@ public class FragmentSync extends Fragment {
 
     private void sync(BluetoothSocket socket){
         if(socket != null) {
-            client = new Client(socket, hostServer.isChecked(), null);  // todo fix encrypted
+            client = new Client(socket, hostServer.isChecked());  // todo fix encrypted
             client.execute();
         } else {
             Toast.makeText(ctx, "socket is null", Toast.LENGTH_SHORT).show();
@@ -227,6 +228,7 @@ public class FragmentSync extends Fragment {
     public void onStop() {
         super.onStop();
         EventBus.getDefault().unregister(this);
+        makeDiscoverableHandler.removeCallbacks(makeDiscoverable);
     }
 
     @Override
