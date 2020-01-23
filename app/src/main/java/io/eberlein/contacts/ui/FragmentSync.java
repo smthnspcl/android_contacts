@@ -33,7 +33,6 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,6 +70,7 @@ public class FragmentSync extends Fragment {
     private ClientSyncConfiguration clientSyncConfiguration = null;
     private Server server;
     private Client client;
+    private List<Contact> savedContacts;
 
     @BindView(R.id.btn_search_devices) FloatingActionButton btnScan;
     @BindView(R.id.rv_remote_devices) RecyclerView deviceRecycler;
@@ -146,7 +146,7 @@ public class FragmentSync extends Fragment {
 
         @Override
         public void write(OutputStream os) {
-            writeFlush(os, Realm.getDefaultInstance().where(Contact.class).findAll().asJSON());
+            writeFlush(os, GsonUtils.toJson(savedContacts));
         }
 
         @Override
@@ -182,6 +182,7 @@ public class FragmentSync extends Fragment {
         ctx = getActivity();
         this.realm = realm;
         devices = new ArrayList<>();
+        savedContacts = realm.copyFromRealm(realm.where(Contact.class).findAll());
     }
 
     @Override
@@ -205,13 +206,15 @@ public class FragmentSync extends Fragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventSyncFinished(EventSyncFinished e){
+        List<Contact> receivedContacts = client.getReceived();
+        Log.d(TAG, "received " + receivedContacts.size() + " contacts");
         if(hostServer.isChecked()){
-            new DialogSyncNonInteractive(ctx, client.getReceived(), realm).show();
+            new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
         } else {
             if(clientSyncConfiguration.isInteractive()){
-                new DialogSyncInteractive(ctx, client.getReceived(), realm).show();
+                new DialogSyncInteractive(ctx, receivedContacts, realm).show();
             } else {
-                new DialogSyncNonInteractive(ctx, client.getReceived(), realm).show();
+                new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
             }
         }
     }

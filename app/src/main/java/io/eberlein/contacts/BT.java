@@ -159,6 +159,7 @@ public class BT {
     }
 
     public static abstract class Server extends AsyncTask<Void, Void, Void> implements ServerInterface {
+        private static final String TAG = "Server";
         private BluetoothServerSocket serverSocket;
 
         public Server(String name, UUID uuid){
@@ -168,6 +169,7 @@ public class BT {
         @Override
         public void createServerSocket(String name, UUID uuid) {
             try{
+                Log.d(TAG, "creating server socket");
                 serverSocket = adapter.listenUsingInsecureRfcommWithServiceRecord(name, uuid);
                 onServerSocketCreated();
             } catch (IOException e){
@@ -177,7 +179,7 @@ public class BT {
 
         @Override
         public void onServerSocketCreated() {
-
+            Log.d(TAG, "server socket created");
         }
 
         @Override
@@ -198,6 +200,7 @@ public class BT {
         @Override
         public BluetoothSocket acceptServerSocket() {
             try {
+                Log.d(TAG, "accepting incoming connections");
                 return serverSocket.accept();
             } catch (IOException e){
                 onAcceptException(e);
@@ -208,6 +211,7 @@ public class BT {
         @Override
         public void closeServerSocket() {
             try {
+                Log.d(TAG, "closing socket");
                 serverSocket.close();
             } catch (IOException e){
                 onServerSocketCloseException(e);
@@ -235,6 +239,7 @@ public class BT {
 
     @SuppressLint("StaticFieldLeak")
     public static abstract class Client<T> extends AsyncTask<Void, Void, Void> implements ClientInterface<T> {
+        private static final String TAG = "Client";
         private BluetoothSocket socket;
         private boolean isServer;
         private List<T> received;
@@ -257,7 +262,12 @@ public class BT {
         }
 
         public void writeFlush(OutputStream os, String data){
+            if(os == null){
+                Log.e(TAG, "outputstream is null");
+                return;
+            }
             try {
+                Log.d(TAG, data);
                 os.write(data.getBytes());
                 os.flush();
             } catch (IOException e){
@@ -266,7 +276,12 @@ public class BT {
         }
 
         void run() {
+            if(socket == null) {
+                Log.e(TAG, "socket is null");
+                return;
+            }
             try {
+                Log.d(TAG, "socket is" + (socket.isConnected() ? "" : " not ") + "connected"); // todo why is the socket not connected
                 OutputStream os = socket.getOutputStream();
                 BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 if(isServer) {
