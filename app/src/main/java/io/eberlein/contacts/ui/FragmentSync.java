@@ -56,6 +56,8 @@ import io.eberlein.contacts.viewholders.VHBluetoothDevice;
 import io.realm.Realm;
 
 
+// https://github.com/realm/realm-java/issues/812
+
 public class FragmentSync extends Fragment {
     private static final String TAG = "FragmentService";
 
