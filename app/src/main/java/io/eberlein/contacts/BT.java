@@ -3,6 +3,7 @@ package io.eberlein.contacts;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
@@ -16,66 +17,119 @@ import com.blankj.utilcode.util.GsonUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-import io.eberlein.contacts.objects.Contact;
+import java.util.stream.Collectors;
 
 
 public class BT {
-    private static IntentFilter filterActionFound = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-    private static IntentFilter filterScanFinished = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-    private static boolean isDiscovering = false;
+    private static final String TAG = "BT";
+
+    private static BluetoothManager manager;
     private static BluetoothAdapter adapter;
-    private static List<BluetoothDevice> scanResults;
 
-    private static BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context ctx, Intent i) {
-            if(BluetoothDevice.ACTION_FOUND.equals(i.getAction())) scanResults.add(i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE));
+    public static class Scanner {
+        private static final String TAG = "BT.Scanner";
+
+        private static List<BluetoothDevice> devices = new ArrayList<>();
+        private static List<BroadcastReceiver> receivers = new ArrayList<>();
+
+        private static BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(BluetoothDevice.ACTION_FOUND.equals(intent.getAction())){
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    Log.d(TAG, device.getAddress() + " : " + device.getName());
+                    if(!devices.contains(device)) devices.add(device);
+                }
+            }
+        };
+
+        private static BroadcastReceiver discoveryFinishedReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())){
+                    Log.d(TAG, "discovery finished");
+                    Log.d(TAG, "scan yielded " + devices.size() + " devices");
+                }
+            }
+        };
+
+        private static BroadcastReceiver discoveryStartedReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(intent.getAction())){
+                    Log.d(TAG, "discovery started");
+                }
+            }
+        };
+
+        public static void init(Context ctx){
+            addReceiver(ctx, deviceFoundReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+            addReceiver(ctx, discoveryStartedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED));
+            addReceiver(ctx, discoveryFinishedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
         }
-    };
 
-    private static BroadcastReceiver scanFinishedReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())) isDiscovering = false;
+        public static List<BluetoothDevice> getDevices() {
+            return devices;
         }
-    };
 
-    public static void init(Context context){
-        adapter = BluetoothAdapter.getDefaultAdapter();
-        scanResults = new ArrayList<>();
-        context.registerReceiver(deviceFoundReceiver, filterActionFound);
-        context.registerReceiver(scanFinishedReceiver, filterScanFinished);
+        public static void addReceiver(Context ctx, BroadcastReceiver br, IntentFilter inF){
+            receivers.add(br);
+            ctx.registerReceiver(br, inF);
+        }
+
+        public static void unregisterReceivers(Context ctx){
+            for(BroadcastReceiver br : receivers) {
+                if(br != null) ctx.unregisterReceiver(br);
+            }
+        }
+
+        public static boolean startScan(){
+            devices = new ArrayList<>();
+            return adapter.startDiscovery();
+        }
+
+        public static boolean cancelScan(){
+            return adapter.cancelDiscovery();
+        }
     }
 
-    public static void uninit(Context ctx){
-        ctx.unregisterReceiver(deviceFoundReceiver);
-        ctx.unregisterReceiver(scanFinishedReceiver);
+    public static void init(Context ctx){
+        manager = (BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
+        adapter = manager.getAdapter();
+    }
+
+    public static void enable(){
+        adapter.enable();
+    }
+
+    public static void disable(){
+        adapter.disable();
     }
 
     public static boolean supported(){
         return adapter != null;
     }
 
-    public static boolean enable(){
-        if(adapter.isEnabled()) return true;
-        return adapter.enable();
+    public static boolean isDiscovering(){
+        return adapter.isDiscovering();
     }
 
-    public static boolean disable(){
-        if(!adapter.isEnabled()) return true;
-        return adapter.disable();
+    public static String getName(){
+        return adapter.getName();
     }
 
-    public static List<BluetoothDevice> getBondedDevices(){
-        List<BluetoothDevice> r = new ArrayList<>();
-        for(BluetoothDevice d : adapter.getBondedDevices()) r.add(d);
-        return r;
+    @SuppressLint("HardwareIds")
+    public static String getAddress(){
+        return adapter.getAddress();
     }
 
     public static void setDiscoverable(Context ctx, int duration){
@@ -84,67 +138,19 @@ public class BT {
         ctx.startActivity(i);
     }
 
-    public static void replaceDeviceFoundReceiver(Context ctx, BroadcastReceiver dfr){
-        ctx.unregisterReceiver(deviceFoundReceiver);
-        deviceFoundReceiver = dfr;
-        ctx.registerReceiver(deviceFoundReceiver, filterActionFound);
+    public static boolean isDeviceBonded(BluetoothDevice device){
+        return adapter.getBondedDevices().contains(device);
     }
 
-    public static void replaceScanFinishedReceiver(Context ctx, BroadcastReceiver sfr){
-        ctx.unregisterReceiver(scanFinishedReceiver);
-        scanFinishedReceiver = sfr;
-        ctx.registerReceiver(scanFinishedReceiver, filterScanFinished);
-    }
-
-    public static void discover(){
-        scanResults = new ArrayList<>();
-        if(!isDiscovering) isDiscovering = adapter.startDiscovery();
-    }
-
-    public static void cancelDiscovery(){
-        if(isDiscovering) adapter.cancelDiscovery();
-    }
-
-    public static List<BluetoothDevice> getScanResults(){
-        return scanResults;
-    }
-
-    public static boolean isDiscovering(){
-        return isDiscovering;
-    }
-
-    @SuppressLint("HardwareIds")
-    public static String getMac(){
-        return adapter.getAddress();
-    }
-
-    public static String getName(){
-        return adapter.getName();
-    }
-
-    public static BluetoothAdapter getAdapter(){
-        return adapter;
-    }
-
-    public static void setName(String name){
-        adapter.setName(name);
-    }
-
-    private static BluetoothSocket _connect(BluetoothDevice device, UUID uuid){
+    public static BluetoothSocket connect(BluetoothDevice device, UUID uuid){
         try {
-            return device.createRfcommSocketToServiceRecord(uuid);
+            BluetoothSocket bs = device.createInsecureRfcommSocketToServiceRecord(uuid);
+            bs.connect();
+            return bs;
         } catch (IOException e){
             e.printStackTrace();
             return null;
         }
-    }
-
-    public static BluetoothSocket connect(String address, UUID uuid){
-        return _connect(adapter.getRemoteDevice(address), uuid);
-    }
-
-    public static BluetoothSocket connect(BluetoothDevice device, UUID uuid){
-        return _connect(device, uuid);
     }
 
     public interface ServerInterface {
@@ -156,10 +162,11 @@ public class BT {
         void onAcceptException(IOException e);
         void onServerSocketCloseException(IOException e);
         void onServerSocketCreateException(IOException e);
+        void onClientConnected(BluetoothSocket socket);
     }
 
     public static abstract class Server extends AsyncTask<Void, Void, Void> implements ServerInterface {
-        private static final String TAG = "Server";
+        private static final String TAG = "BT.Server";
         private BluetoothServerSocket serverSocket;
 
         public Server(String name, UUID uuid){
@@ -198,10 +205,17 @@ public class BT {
         }
 
         @Override
+        public void onClientConnected(BluetoothSocket socket) {
+            Log.d(TAG, "client '" + socket.getRemoteDevice().getName() + "; " + socket.getRemoteDevice().getAddress() + "' connected");
+        }
+
+        @Override
         public BluetoothSocket acceptServerSocket() {
             try {
                 Log.d(TAG, "accepting incoming connections");
-                return serverSocket.accept();
+                BluetoothSocket cs = serverSocket.accept();
+                onClientConnected(cs);
+                return cs;
             } catch (IOException e){
                 onAcceptException(e);
                 return null;
@@ -233,13 +247,19 @@ public class BT {
 
     interface ClientInterface<T> {
         void write(OutputStream os);
-        void read(BufferedReader br);
+        void write(OutputStream os, String data);
+        void read(InputStream is);
         T deserializeData(String data);
+        void onReceiving();
+        void onReceived(String data);
+        void onSending();
+        void onSent();
     }
 
     @SuppressLint("StaticFieldLeak")
     public static abstract class Client<T> extends AsyncTask<Void, Void, Void> implements ClientInterface<T> {
-        private static final String TAG = "Client";
+        private static final String TAG = "BT.Client";
+
         private BluetoothSocket socket;
         private boolean isServer;
         private List<T> received;
@@ -250,29 +270,44 @@ public class BT {
             received = new ArrayList<>();
         }
 
-        public void read(BufferedReader br){
+        @Override
+        public void onSending() {
+            Log.d(TAG, "sending data");
+        }
+
+        @Override
+        public void onSent() {
+            Log.d(TAG, "sent data");
+        }
+
+        @Override
+        public void onReceiving() {
+            Log.d(TAG, "receiving data");
+        }
+
+        @Override
+        public void onReceived(String data) {
+            Log.d(TAG, "received: " + data);
+            deserializeData(data);
+        }
+
+        public void write(OutputStream os, String data) {
+            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
             try {
-                for (String line; (line = br.readLine()) != null; ) {
-                    Log.d("Client", line);
-                    received.add(deserializeData(line));
-                }
-            } catch (IOException e) {
+                onSending();
+                osw.write(data);
+                onSent();
+            } catch (IOException e){
                 e.printStackTrace();
             }
         }
 
-        public void writeFlush(OutputStream os, String data){
-            if(os == null){
-                Log.e(TAG, "outputstream is null");
-                return;
-            }
-            try {
-                Log.d(TAG, data);
-                os.write(data.getBytes());
-                os.flush();
-            } catch (IOException e){
-                e.printStackTrace();
-            }
+        @Override
+        public void read(InputStream is) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+            onReceiving();
+            String data = br.lines().collect(Collectors.joining());
+            onReceived(data);
         }
 
         void run() {
@@ -280,20 +315,26 @@ public class BT {
                 Log.e(TAG, "socket is null");
                 return;
             }
+            if(socket.isConnected()){
+                Log.d(TAG, "socket is connected");
+            } else {
+                Log.e(TAG, "socket is not connected");
+                return;
+            }
             try {
-                Log.d(TAG, "socket is" + (socket.isConnected() ? "" : " not ") + "connected"); // todo why is the socket not connected
                 OutputStream os = socket.getOutputStream();
-                BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                InputStream is = socket.getInputStream();
                 if(isServer) {
-                    read(br);
+                    read(is);
                     write(os);
                 } else {
                     write(os);
-                    read(br);
+                    read(is);
                 }
                 os.close();
-                br.close();
-            } catch (IOException e){
+                is.close();
+                socket.close();
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }

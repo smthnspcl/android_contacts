@@ -1,12 +1,14 @@
 package io.eberlein.contacts.ui;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -43,6 +45,7 @@ import butterknife.OnClick;
 import io.eberlein.contacts.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
+import io.eberlein.contacts.dialogs.DialogProgress;
 import io.eberlein.contacts.dialogs.DialogSyncConfiguration;
 import io.eberlein.contacts.dialogs.DialogSyncInteractive;
 import io.eberlein.contacts.dialogs.DialogSyncNonInteractive;
@@ -54,18 +57,20 @@ import io.eberlein.contacts.objects.events.EventSyncFinished;
 import io.eberlein.contacts.viewholders.VHBluetoothDevice;
 import io.realm.Realm;
 
-
 // https://github.com/realm/realm-java/issues/812
 
 public class FragmentSync extends Fragment {
     private static final String TAG = "FragmentService";
 
+    private Context ctx;
+    private Realm realm;
+
     private static final String SERVICE_NAME = "contactSyncServer";
     private static final UUID SERVICE_UUID = UUID.fromString("2b61e90c-161b-4683-b197-d8129f0fa8d0");
     private static final int DISCOVERABLE_TIME = 420;
-    private Realm realm;
+
     private List<BluetoothDevice> devices;
-    private Context ctx;
+    private VHAdapter deviceAdapter;
 
     private ClientSyncConfiguration clientSyncConfiguration = null;
     private Server server;
@@ -76,26 +81,6 @@ public class FragmentSync extends Fragment {
     @BindView(R.id.rv_remote_devices) RecyclerView deviceRecycler;
     @BindView(R.id.pb_search) ProgressBar progressBar;
     @BindView(R.id.cb_server) CheckBox hostServer;
-
-    private BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if(BluetoothDevice.ACTION_FOUND.equals(intent.getAction())){
-                devices.add(intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE));
-            }
-        }
-    };
-
-    private BroadcastReceiver scanDoneReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())){
-                btnScan.show();
-                progressBar.setVisibility(View.GONE);
-                hostServer.setVisibility(View.VISIBLE);
-            }
-        }
-    };
 
     private Handler makeDiscoverableHandler = new Handler();
 
@@ -135,6 +120,9 @@ public class FragmentSync extends Fragment {
 
     @SuppressLint("StaticFieldLeak")
     private class Client extends BT.Client<Contact> {
+        private AlertDialog sendingDialog;
+        private AlertDialog receivingDialog;
+
         Client(BluetoothSocket socket, boolean isServer){
             super(socket, isServer);
         }
@@ -146,7 +134,31 @@ public class FragmentSync extends Fragment {
 
         @Override
         public void write(OutputStream os) {
-            writeFlush(os, GsonUtils.toJson(savedContacts));
+            write(os, GsonUtils.toJson(savedContacts));
+        }
+
+        @Override
+        public void onSending() {
+            super.onSending();
+            sendingDialog = new DialogProgress().show(ctx, getString(R.string.sending), getString(R.string.sending));
+        }
+
+        @Override
+        public void onSent() {
+            super.onSent();
+            sendingDialog.dismiss();
+        }
+
+        @Override
+        public void onReceiving() {
+            super.onReceiving();
+            receivingDialog = new DialogProgress().show(ctx, getString(R.string.receiving), getString(R.string.receiving));
+        }
+
+        @Override
+        public void onReceived(String data) {
+            super.onReceived(data);
+            receivingDialog.dismiss();
         }
 
         @Override
@@ -170,27 +182,18 @@ public class FragmentSync extends Fragment {
 
     @OnClick(R.id.btn_search_devices)
     void onBtnSearchDevicesClicked(){
-        if(!BT.isDiscovering()) {
-            BT.discover();
+        if(!BT.isDiscovering()){
             btnScan.hide();
             progressBar.setVisibility(View.VISIBLE);
             hostServer.setVisibility(View.GONE);
+            BT.Scanner.startScan();
         }
-    }
-
-    public FragmentSync(Realm realm){
-        ctx = getActivity();
-        this.realm = realm;
-        devices = new ArrayList<>();
-        savedContacts = realm.copyFromRealm(realm.where(Contact.class).findAll());
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         BT.enable();
-        BT.replaceDeviceFoundReceiver(getContext(), deviceFoundReceiver);
-        BT.replaceScanFinishedReceiver(getContext(), scanDoneReceiver);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -198,10 +201,26 @@ public class FragmentSync extends Fragment {
         new DialogSyncConfiguration(getContext(), e.getObject()).show();
     }
 
+    private BroadcastReceiver bondReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(intent.getAction())){
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if(device.getBondState() == BluetoothDevice.BOND_BONDED){
+                    EventBus.getDefault().post(new EventClientSync(clientSyncConfiguration));
+                }
+            }
+        }
+    };
+
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventClientSync(EventClientSync e){
         clientSyncConfiguration = e.getObject();
-        sync(BT.connect(clientSyncConfiguration.getDevice(), SERVICE_UUID));
+        if(!BT.isDeviceBonded(clientSyncConfiguration.getDevice())){
+            clientSyncConfiguration.getDevice().createBond();
+        } else {
+            sync(BT.connect(clientSyncConfiguration.getDevice(), SERVICE_UUID));
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -229,6 +248,32 @@ public class FragmentSync extends Fragment {
         }
     }
 
+    private BroadcastReceiver onDiscoveryFinishedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())){
+                btnScan.show();
+                progressBar.setVisibility(View.GONE);
+                hostServer.setVisibility(View.VISIBLE);
+                devices.addAll(BT.Scanner.getDevices());
+            }
+        }
+    };
+
+    private void initBT(){
+        BT.Scanner.init(ctx);
+        BT.Scanner.addReceiver(ctx, onDiscoveryFinishedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+        BT.Scanner.addReceiver(ctx, bondReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+    }
+
+    public FragmentSync(Context ctx, Realm realm){
+        this.ctx = ctx;
+        initBT();
+        this.realm = realm;
+        devices = new ArrayList<>();
+        savedContacts = realm.copyFromRealm(realm.where(Contact.class).findAll());
+    }
+
     @Override
     public void onStop() {
         super.onStop();
@@ -245,6 +290,7 @@ public class FragmentSync extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        BT.Scanner.unregisterReceivers(ctx);
         BT.disable();
     }
 
@@ -254,7 +300,7 @@ public class FragmentSync extends Fragment {
         View v = inflater.inflate(R.layout.fragment_sync, container, false);
         ButterKnife.bind(this, v);
         deviceRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
-        VHAdapter deviceAdapter = new VHAdapter<>(VHBluetoothDevice.class, devices);
+        deviceAdapter = new VHAdapter<>(VHBluetoothDevice.class, devices);
         deviceRecycler.setAdapter(deviceAdapter);
         return v;
     }

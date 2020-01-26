@@ -42,4 +42,6 @@
     <string name="created_server">created_server</string>
     <string name="no_bluetooth_support">this device does not support bluetooth</string>
     <string name="unable_sync_contacts">without bluetooth you will not be able to synchronize your contacts between your devices</string>
+    <string name="sending">sending</string>
+    <string name="receiving">receiving</string>
 </resources>

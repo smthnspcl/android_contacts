@@ -106,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        BT.uninit(this);
         realm.close();
     }
 
@@ -211,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentSettings(realm), R.id.fragment_host, true);
         } else if(id == R.id.action_sync) {
-            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(realm), R.id.fragment_host, true);
+            FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(this, realm), R.id.fragment_host, true);
         }
 
         return super.onOptionsItemSelected(item);
