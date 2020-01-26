@@ -153,6 +153,10 @@ public class BT {
         }
     }
 
+    public static boolean isEnabled(){
+        return adapter.isEnabled();
+    }
+
     public interface ServerInterface {
         void createServerSocket(String name, UUID uuid);
         BluetoothSocket acceptServerSocket();
@@ -247,8 +251,8 @@ public class BT {
 
     interface ClientInterface<T> {
         void write(OutputStream os);
-        void write(OutputStream os, String data);
-        void read(InputStream is);
+        void write(OutputStream os, String data) throws IOException;
+        void read(InputStream is) throws IOException;
         T deserializeData(String data);
         void onReceiving();
         void onReceived(String data);
@@ -296,6 +300,7 @@ public class BT {
             try {
                 onSending();
                 osw.write(data);
+                osw.flush();
                 onSent();
             } catch (IOException e){
                 e.printStackTrace();
@@ -306,7 +311,16 @@ public class BT {
         public void read(InputStream is) {
             BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
             onReceiving();
-            String data = br.lines().collect(Collectors.joining());
+            StringBuilder sb = new StringBuilder();
+            try {
+                for (String line; (line = br.readLine()) != null;){
+                    Log.d(TAG, "received: " + line);
+                    sb.append(line);
+                }
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+            String data = sb.toString();
             onReceived(data);
         }
 

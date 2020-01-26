@@ -11,7 +11,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -174,7 +173,7 @@ public class FragmentSync extends Fragment {
 
     @OnCheckedChanged(R.id.cb_server)
     void onCheckedChangedServer(){
-        if(hostServer.isChecked()){
+        if(hostServer.isChecked() && BT.isEnabled()){
             btnScan.hide();
             server = new Server();
             server.execute();
@@ -206,7 +205,7 @@ public class FragmentSync extends Fragment {
         new DialogSyncConfiguration(getContext(), e.getObject()).show();
     }
 
-    private BroadcastReceiver bondReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver onBondedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(intent.getAction())){
@@ -288,7 +287,7 @@ public class FragmentSync extends Fragment {
     private void initBT(){
         BT.Scanner.init(ctx);
         BT.Scanner.addReceiver(ctx, onDiscoveryFinishedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-        BT.Scanner.addReceiver(ctx, bondReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+        BT.Scanner.addReceiver(ctx, onBondedReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
     }
 
     public FragmentSync(Context ctx, Realm realm){
