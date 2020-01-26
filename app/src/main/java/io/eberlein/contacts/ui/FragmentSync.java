@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -54,6 +55,10 @@ import io.eberlein.contacts.objects.Contact;
 import io.eberlein.contacts.objects.events.EventClientSync;
 import io.eberlein.contacts.objects.events.EventSelectedBluetoothDevice;
 import io.eberlein.contacts.objects.events.EventSyncFinished;
+import io.eberlein.contacts.objects.events.EventSyncReceived;
+import io.eberlein.contacts.objects.events.EventSyncReceiving;
+import io.eberlein.contacts.objects.events.EventSyncSending;
+import io.eberlein.contacts.objects.events.EventSyncSent;
 import io.eberlein.contacts.viewholders.VHBluetoothDevice;
 import io.realm.Realm;
 
@@ -76,6 +81,9 @@ public class FragmentSync extends Fragment {
     private Server server;
     private Client client;
     private List<Contact> savedContacts;
+
+    private AlertDialog dialogSending;
+    private AlertDialog dialogReceiving;
 
     @BindView(R.id.btn_search_devices) FloatingActionButton btnScan;
     @BindView(R.id.rv_remote_devices) RecyclerView deviceRecycler;
@@ -120,9 +128,6 @@ public class FragmentSync extends Fragment {
 
     @SuppressLint("StaticFieldLeak")
     private class Client extends BT.Client<Contact> {
-        private AlertDialog sendingDialog;
-        private AlertDialog receivingDialog;
-
         Client(BluetoothSocket socket, boolean isServer){
             super(socket, isServer);
         }
@@ -140,25 +145,25 @@ public class FragmentSync extends Fragment {
         @Override
         public void onSending() {
             super.onSending();
-            sendingDialog = new DialogProgress().show(ctx, getString(R.string.sending), getString(R.string.sending));
+            EventBus.getDefault().post(new EventSyncSending());
         }
 
         @Override
         public void onSent() {
             super.onSent();
-            sendingDialog.dismiss();
+            EventBus.getDefault().post(new EventSyncSent());
         }
 
         @Override
         public void onReceiving() {
             super.onReceiving();
-            receivingDialog = new DialogProgress().show(ctx, getString(R.string.receiving), getString(R.string.receiving));
+            EventBus.getDefault().post(new EventSyncReceiving());
         }
 
         @Override
         public void onReceived(String data) {
             super.onReceived(data);
-            receivingDialog.dismiss();
+            EventBus.getDefault().post(new EventSyncReceived());
         }
 
         @Override
@@ -221,6 +226,26 @@ public class FragmentSync extends Fragment {
         } else {
             sync(BT.connect(clientSyncConfiguration.getDevice(), SERVICE_UUID));
         }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventSyncSending(EventSyncSending e){
+        dialogSending = new DialogProgress().show(ctx, getString(R.string.sending), getString(R.string.sending));
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventSyncSent(EventSyncSent e){
+        dialogSending.dismiss();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventSyncReceiving(EventSyncReceiving e){
+        dialogReceiving = new DialogProgress().show(ctx, getString(R.string.receiving), getString(R.string.receiving));
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventSyncReceived(EventSyncReceived e){
+        dialogReceiving.dismiss();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
