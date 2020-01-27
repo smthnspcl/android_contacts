@@ -33,7 +33,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -61,7 +60,6 @@ import io.eberlein.contacts.objects.events.EventSyncSent;
 import io.eberlein.contacts.viewholders.VHBluetoothDevice;
 import io.realm.Realm;
 
-// https://github.com/realm/realm-java/issues/812
 
 public class FragmentSync extends Fragment {
     private static final String TAG = "FragmentService";
@@ -74,7 +72,6 @@ public class FragmentSync extends Fragment {
     private static final int DISCOVERABLE_TIME = 420;
 
     private List<BluetoothDevice> devices;
-    private VHAdapter deviceAdapter;
 
     private ClientSyncConfiguration clientSyncConfiguration = null;
     private Server server;
@@ -89,19 +86,17 @@ public class FragmentSync extends Fragment {
     @BindView(R.id.pb_search) ProgressBar progressBar;
     @BindView(R.id.cb_server) CheckBox hostServer;
 
-    private Handler makeDiscoverableHandler = new Handler();
+    private Handler handler = new Handler();
 
-    private Runnable makeDiscoverable = new Runnable() {
+    private Runnable disableServerAfterXSeconds = new Runnable() {
         @Override
         public void run() {
-            BT.setDiscoverable(getContext(), DISCOVERABLE_TIME);
-            makeDiscoverableHandler.postDelayed(makeDiscoverable, DISCOVERABLE_TIME * 1000);
+            server.cancel(true);
         }
     };
 
     @SuppressLint("StaticFieldLeak")
     private class Server extends BT.Server {
-
         Server(){
             super(SERVICE_NAME, SERVICE_UUID);
         }
@@ -116,7 +111,7 @@ public class FragmentSync extends Fragment {
         @Override
         public void onServerSocketCreated() {
             Toast.makeText(getContext(), R.string.created_server, Toast.LENGTH_SHORT).show();
-            makeDiscoverableHandler.post(makeDiscoverable);
+            handler.post(disableServerAfterXSeconds);
         }
 
         @Override
@@ -127,8 +122,8 @@ public class FragmentSync extends Fragment {
 
     @SuppressLint("StaticFieldLeak")
     private class Client extends BT.Client<Contact> {
-        Client(BluetoothSocket socket, boolean isServer){
-            super(socket, isServer);
+        Client(BluetoothSocket socket){
+            super(socket);
         }
 
         @Override
@@ -137,14 +132,28 @@ public class FragmentSync extends Fragment {
         }
 
         @Override
-        public void write(OutputStream os) {
-            write(os, GsonUtils.toJson(savedContacts));
-        }
-
-        @Override
         public void onSending() {
             super.onSending();
             EventBus.getDefault().post(new EventSyncSending());
+        }
+
+        @Override
+        public void onReady() {
+            super.onReady();
+            try {
+                addWriterData("nyees");
+                addWriterData("boi");
+                addWriterData("gimmefuks\n");
+                addWriterData("nignog\r\n");
+                addWriterData(GsonUtils.toJson(savedContacts));
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onFinished() {
+            super.onFinished();
         }
 
         @Override
@@ -173,13 +182,13 @@ public class FragmentSync extends Fragment {
 
     @OnCheckedChanged(R.id.cb_server)
     void onCheckedChangedServer(){
-        if(hostServer.isChecked() && BT.isEnabled()){
+        if(hostServer.isChecked()){
+            BT.setDiscoverable(ctx, DISCOVERABLE_TIME);
+            handler.postDelayed(disableServerAfterXSeconds, DISCOVERABLE_TIME * 1000);
             btnScan.hide();
-            server = new Server();
-            server.execute();
         } else {
             server.cancel(true);
-            makeDiscoverableHandler.removeCallbacks(makeDiscoverable);
+            handler.removeCallbacks(disableServerAfterXSeconds);
             btnScan.show();
         }
     }
@@ -190,14 +199,8 @@ public class FragmentSync extends Fragment {
             btnScan.hide();
             progressBar.setVisibility(View.VISIBLE);
             hostServer.setVisibility(View.GONE);
-            BT.Scanner.startScan();
+            BT.ClassicScanner.startScan();
         }
-    }
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        BT.enable();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -264,7 +267,7 @@ public class FragmentSync extends Fragment {
 
     private void sync(BluetoothSocket socket){
         if(socket != null) {
-            client = new Client(socket, hostServer.isChecked());  // todo fix encrypted
+            client = new Client(socket);  // todo fix encrypted
             client.execute();
         } else {
             Toast.makeText(ctx, "socket is null", Toast.LENGTH_SHORT).show();
@@ -279,15 +282,21 @@ public class FragmentSync extends Fragment {
                 btnScan.show();
                 progressBar.setVisibility(View.GONE);
                 hostServer.setVisibility(View.VISIBLE);
-                devices.addAll(BT.Scanner.getDevices());
+                devices.addAll(BT.ClassicScanner.getDevices());
             }
         }
     };
 
     private void initBT(){
-        BT.Scanner.init(ctx);
-        BT.Scanner.addReceiver(ctx, onDiscoveryFinishedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-        BT.Scanner.addReceiver(ctx, onBondedReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+        BT.ClassicScanner.init(ctx);
+        BT.ClassicScanner.addReceiver(ctx, onDiscoveryFinishedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+        BT.ClassicScanner.addReceiver(ctx, onBondedReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+        BT.enable();
+    }
+
+    private void uninitBT(){
+        BT.ClassicScanner.unregisterReceivers(ctx);
+        BT.disable();
     }
 
     public FragmentSync(Context ctx, Realm realm){
@@ -302,7 +311,7 @@ public class FragmentSync extends Fragment {
     public void onStop() {
         super.onStop();
         EventBus.getDefault().unregister(this);
-        makeDiscoverableHandler.removeCallbacks(makeDiscoverable);
+        handler.removeCallbacks(disableServerAfterXSeconds);
     }
 
     @Override
@@ -314,8 +323,12 @@ public class FragmentSync extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        BT.Scanner.unregisterReceivers(ctx);
-        BT.disable();
+        uninitBT();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
     }
 
     @Nullable
@@ -324,7 +337,7 @@ public class FragmentSync extends Fragment {
         View v = inflater.inflate(R.layout.fragment_sync, container, false);
         ButterKnife.bind(this, v);
         deviceRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
-        deviceAdapter = new VHAdapter<>(VHBluetoothDevice.class, devices);
+        VHAdapter deviceAdapter = new VHAdapter<>(VHBluetoothDevice.class, devices);
         deviceRecycler.setAdapter(deviceAdapter);
         return v;
     }
