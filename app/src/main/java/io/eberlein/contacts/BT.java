@@ -12,9 +12,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.util.Log;
-
-import com.blankj.utilcode.util.GsonUtils;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,10 +20,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 
 public class BT {
@@ -35,7 +30,7 @@ public class BT {
     private static BluetoothManager manager;
     private static BluetoothAdapter adapter;
 
-    public static class Scanner {
+    public static class ClassicScanner {
         private static final String TAG = "BT.Scanner";
 
         private static List<BluetoothDevice> devices = new ArrayList<>();
@@ -250,28 +245,135 @@ public class BT {
     }
 
     interface ClientInterface<T> {
-        void write(OutputStream os);
-        void write(OutputStream os, String data) throws IOException;
-        void read(InputStream is) throws IOException;
         T deserializeData(String data);
         void onReceiving();
         void onReceived(String data);
         void onSending();
         void onSent();
+        void onReady();
+        void onFinished();
     }
 
+
+    // todo fix
+    // isn't receiving any data
     @SuppressLint("StaticFieldLeak")
     public static abstract class Client<T> extends AsyncTask<Void, Void, Void> implements ClientInterface<T> {
+
+        private static class Reader extends AsyncTask<Void, Void, Void> {
+            private static final String TAG = "BT.Client.Reader";
+            private InputStream inputStream;
+            private boolean doRun;
+            private List<String> receivedData = new ArrayList<>();
+
+            Reader(InputStream inputStream){
+                this.inputStream = inputStream;
+                doRun = inputStream != null;
+                Log.d(TAG, (doRun ? "not " : "") + "going to run");
+            }
+
+            private void run(){
+                // BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+                byte[] buffer = new byte[1024];
+                int bytes;
+                Log.d(TAG, "receiving messages");
+                while (doRun){
+                    try {
+                        bytes = inputStream.read(buffer);
+                        Log.d(TAG, "received " + bytes + " bytes");
+                        String data = new String(buffer, 0, bytes);
+                        receivedData.add(data);
+                        Log.d(TAG, "received: " + data);
+                    } catch (IOException e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            @Override
+            protected void onCancelled() {
+                super.onCancelled();
+                doRun = false;
+            }
+
+            @Override
+            protected Void doInBackground(Void... voids) {
+                run();
+                return null;
+            }
+
+            List<String> getReceivedData() {
+                return receivedData;
+            }
+
+            boolean isRunning(){
+                return doRun;
+            }
+
+            void stop(){
+                doRun = false;
+            }
+        }
+
+        private static class Writer extends AsyncTask<Void, Void, Void> {
+            private OutputStream outputStream;
+            private boolean doRun;
+            private List<String> sendData = new ArrayList<>();
+
+            Writer(OutputStream outputStream){
+                this.outputStream = outputStream;
+                doRun = outputStream != null;
+            }
+
+            private void run(){
+                OutputStreamWriter osw = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
+                while (doRun){
+                    for(String s : sendData){
+                        try {
+                            osw.write(s);
+                            osw.flush();
+                            sendData.remove(s);
+                        } catch (IOException e){
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            protected void onCancelled() {
+                super.onCancelled();
+                doRun = false;
+            }
+
+            @Override
+            protected Void doInBackground(Void... voids) {
+                run();
+                return null;
+            }
+
+            void addSendData(String data){
+                sendData.add(data);
+            }
+
+            boolean isRunning(){
+                return doRun;
+            }
+
+            void stop(){
+                doRun = false;
+            }
+        }
+
         private static final String TAG = "BT.Client";
 
         private BluetoothSocket socket;
-        private boolean isServer;
-        private List<T> received;
 
-        public Client(BluetoothSocket socket, boolean isServer){
+        private Reader reader;
+        private Writer writer;
+
+        public Client(BluetoothSocket socket){
             this.socket = socket;
-            this.isServer = isServer;
-            received = new ArrayList<>();
         }
 
         @Override
@@ -295,33 +397,14 @@ public class BT {
             deserializeData(data);
         }
 
-        public void write(OutputStream os, String data) {
-            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
-            try {
-                onSending();
-                osw.write(data);
-                osw.flush();
-                onSent();
-            } catch (IOException e){
-                e.printStackTrace();
-            }
+        @Override
+        public void onReady() {
+            Log.d(TAG, "ready");
         }
 
         @Override
-        public void read(InputStream is) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-            onReceiving();
-            StringBuilder sb = new StringBuilder();
-            try {
-                for (String line; (line = br.readLine()) != null;){
-                    Log.d(TAG, "received: " + line);
-                    sb.append(line);
-                }
-            } catch (IOException e){
-                e.printStackTrace();
-            }
-            String data = sb.toString();
-            onReceived(data);
+        public void onFinished() {
+            Log.d(TAG, "finished");
         }
 
         void run() {
@@ -336,21 +419,27 @@ public class BT {
                 return;
             }
             try {
-                OutputStream os = socket.getOutputStream();
-                InputStream is = socket.getInputStream();
-                if(isServer) {
-                    read(is);
-                    write(os);
-                } else {
-                    write(os);
-                    read(is);
+                reader = new Reader(socket.getInputStream());
+                writer = new Writer(socket.getOutputStream());
+                reader.execute();
+                writer.execute();
+                onReady();
+                while (reader.isRunning() && writer.isRunning()){
+                    try {
+                        Thread.sleep(420);
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
                 }
-                os.close();
-                is.close();
-                socket.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            onFinished();
+        }
+
+        public void stop(){
+            if(reader != null) reader.stop();
+            if(writer != null) writer.stop();
         }
 
         @Override
@@ -359,8 +448,17 @@ public class BT {
             return null;
         }
 
+        public void addWriterData(String data) throws Exception {
+            if(writer != null) writer.addSendData(data);
+            else throw new Exception("Writer has not been instantiated yet.");
+        }
+
         public List<T> getReceived() {
-            return received;
+            List<T> r = new ArrayList<>();
+            for(String s : reader.getReceivedData()){
+                r.add(deserializeData(s));
+            }
+            return r;
         }
     }
 }
