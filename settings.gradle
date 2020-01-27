@@ -1,2 +1,2 @@
-include ':app'
+include ':app', ':BTWiz_v1.2'
 rootProject.name='contacts'
