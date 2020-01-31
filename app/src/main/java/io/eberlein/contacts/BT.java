@@ -13,17 +13,12 @@ import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 
 public class BT {
@@ -301,42 +296,62 @@ public class BT {
     }
 
     interface ReaderInterface {
+        void inform(int message);
         void finished();
     }
 
     interface WriterInterface {
+        void inform(int message);
         void finished();
+    }
+
+    interface IPCInterface {
+        void onMessage(int message);
     }
 
     public interface OnDataReceivedInterface {
         void onReceived(String data);
     }
 
-    // todo fix
-    // isn't receiving any data
     @SuppressLint("StaticFieldLeak")
     public static abstract class Client extends AsyncTask<Void, Void, Void> implements ClientInterface {
 
-        public static class Reader extends AsyncTask<Void, Void, Void> {
+        public static class Reader extends AsyncTask<Void, Void, Void> implements IPCInterface {
             private static final String TAG = "BT.Client.Reader";
+
+            public static final String DATA_IS_READY = "READY";
+            public static final int MSG_READER_READY = 0;
+            public static final int MSG_REMOTE_READY = 1;
+
             private InputStream inputStream;
             private boolean doRun;
             private OnDataReceivedInterface onDataReceivedInterface;
-            private ReaderInterface readerInterface;
 
-            Reader(InputStream inputStream, OnDataReceivedInterface onDataReceivedInterface, ReaderInterface readerInterface){
+            private ReaderInterface readerInterface;
+            private WriterInterface writerInterface;
+
+            Reader(InputStream inputStream, OnDataReceivedInterface onDataReceivedInterface, ReaderInterface readerInterface, WriterInterface writerInterface){
                 this.inputStream = inputStream;
                 this.onDataReceivedInterface = onDataReceivedInterface;
                 this.readerInterface = readerInterface;
+                this.writerInterface = writerInterface;
                 doRun = true;
             }
 
             private void run(){
-                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+                int bytes;
+                byte[] buffer = new byte[1024];
                 Log.d(TAG, "receiving messages");
+                writerInterface.inform(MSG_READER_READY);
                 while (doRun){
-                    String data = br.lines().collect(Collectors.joining());
-                    onDataReceivedInterface.onReceived(data);
+                    try {
+                        bytes = inputStream.read(buffer);
+                        String data = new String(buffer, 0, bytes);
+                        if(data.equals(DATA_IS_READY)) writerInterface.inform(MSG_REMOTE_READY);
+                        else onDataReceivedInterface.onReceived(data);
+                    } catch (IOException e){
+                        e.printStackTrace();
+                    }
                 }
                 readerInterface.finished();
             }
@@ -356,14 +371,22 @@ public class BT {
             void stop(){
                 doRun = false;
             }
+
+            @Override
+            public void onMessage(int message) {
+
+            }
         }
 
-        public static class Writer extends AsyncTask<Void, Void, Void> {
+        public static class Writer extends AsyncTask<Void, Void, Void> implements IPCInterface {
             private static final String TAG = "BT.Client.Writer";
             private OutputStream outputStream;
             private boolean doRun;
             private List<String> sendData = new ArrayList<>();
             private WriterInterface writerInterface;
+
+            private boolean readerIsReady = false;
+            private boolean remoteReaderIsReady = false;
 
             Writer(OutputStream outputStream, WriterInterface writerInterface){
                 this.outputStream = outputStream;
@@ -371,18 +394,33 @@ public class BT {
                 doRun = true;
             }
 
+            private void writeFlush(String data){
+                try {
+                    Log.d(TAG, "sending: " + data);
+                    outputStream.write(data.getBytes());
+                    outputStream.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
             private void run(){
                 Log.d(TAG, "sending data");
-                OutputStreamWriter osw = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
                 while (doRun){
-                    for(String s : sendData) {
-                        try {
-                            Log.d(TAG, "sending: " + s);
-                            osw.write(s);
-                            osw.flush();
-                            sendData.remove(s);
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                    if(readerIsReady) {
+                        if(!remoteReaderIsReady) {
+                            writeFlush(Reader.DATA_IS_READY);
+                            try {
+                                Thread.sleep(420);
+                            } catch (InterruptedException e){
+                                e.printStackTrace();
+                            }
+                        }
+                        else {
+                            for(String s : sendData) {
+                                writeFlush(s);
+                                sendData.remove(s);
+                            }
                         }
                     }
                 }
@@ -412,6 +450,12 @@ public class BT {
             void stop(){
                 doRun = false;
             }
+
+            @Override
+            public void onMessage(int message) {
+                if(message == Reader.MSG_READER_READY) readerIsReady = true;
+                else if(message == Reader.MSG_REMOTE_READY) remoteReaderIsReady = true;
+            }
         }
 
         private static final String TAG = "BT.Client";
@@ -432,6 +476,11 @@ public class BT {
                 readerFinished = true;
                 if(writerFinished) onFinished();
             }
+
+            @Override
+            public void inform(int message) {
+                reader.onMessage(message);
+            }
         };
 
         private WriterInterface writerInterface = new WriterInterface() {
@@ -439,6 +488,11 @@ public class BT {
             public void finished() {
                 writerFinished = true;
                 if(readerFinished) onFinished();
+            }
+
+            @Override
+            public void inform(int message) {
+                writer.onMessage(message);
             }
         };
 
@@ -473,7 +527,7 @@ public class BT {
                 if(is == null) Log.wtf(TAG, "inputstream is null");
                 OutputStream os = socket.getOutputStream();
                 if(os == null) Log.wtf(TAG, "outputstream is null");
-                reader = new Reader(is, onDataReceivedInterface, readerInterface);
+                reader = new Reader(is, onDataReceivedInterface, readerInterface, writerInterface);
                 writer = new Writer(os, writerInterface);
                 onReady();
                 reader.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);

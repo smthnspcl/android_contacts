@@ -70,8 +70,7 @@ public class FragmentSync extends Fragment {
     private ClientSyncConfiguration clientSyncConfiguration = null;
     private String savedContacts;
 
-    private AlertDialog dialogSending;
-    private AlertDialog dialogReceiving;
+    private AlertDialog dialogWorking;
 
     private Server server;
     private Client client;
@@ -112,12 +111,26 @@ public class FragmentSync extends Fragment {
         }
     };
 
+    private void sync(List<Contact> receivedContacts){
+        Log.d(TAG, "received " + receivedContacts.size() + " contacts");
+        if(hostServer.isChecked()){
+            new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
+        } else {
+            if(clientSyncConfiguration.isInteractive()){
+                new DialogSyncInteractive(ctx, receivedContacts, realm).show();
+            } else {
+                new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
+            }
+        }
+    }
+
     private BT.OnDataReceivedInterface onDataReceivedInterface = new BT.OnDataReceivedInterface() {
         @Override
         public void onReceived(String data) {
             Log.d(TAG, "onReceived: " + data);
-            // todo
-            // makes deserialize data obsolete
+            List<Contact> contacts = GsonUtils.fromJson(data, GsonUtils.getListType(Contact.class));
+            Log.d(TAG, "received " + contacts.size() + " contacts");
+            sync(contacts);
         }
     };
 
@@ -130,12 +143,15 @@ public class FragmentSync extends Fragment {
         @Override
         public void onReady() {
             Log.d(TAG, "onReady");
+            dialogWorking.show();
             addSendData(savedContacts);
         }
 
         @Override
         public void onFinished() {
             Log.d(TAG, "onFinished");
+            stop();
+            dialogWorking.dismiss();
         }
     }
 
@@ -162,6 +178,7 @@ public class FragmentSync extends Fragment {
             BT.setDiscoverable(getContext(), DISCOVERABLE_TIME);
             handler.postDelayed(disableServerRunnable, DISCOVERABLE_TIME * 1000);
             server = new Server();
+            server.execute();
             btnScan.hide();
         } else {
             server.cancel(true);
@@ -200,41 +217,6 @@ public class FragmentSync extends Fragment {
         } else {
             BT.Connector.register(getContext(), connectionInterface);
             BT.Connector.connect(clientSyncConfiguration.getDevice(), SERVICE_UUID);
-        }
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventSyncSending(EventSyncSending e){
-        dialogSending = new DialogProgress().show(ctx, getString(R.string.sending), getString(R.string.sending));
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventSyncSent(EventSyncSent e){
-        dialogSending.dismiss();
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventSyncReceiving(EventSyncReceiving e){
-        dialogReceiving = new DialogProgress().show(ctx, getString(R.string.receiving), getString(R.string.receiving));
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventSyncReceived(EventSyncReceived e){
-        dialogReceiving.dismiss();
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventSyncFinished(EventSyncFinished e){
-        List<Contact> receivedContacts = new ArrayList<>(); // todo
-        Log.d(TAG, "received " + receivedContacts.size() + " contacts");
-        if(hostServer.isChecked()){
-            new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
-        } else {
-            if(clientSyncConfiguration.isInteractive()){
-                new DialogSyncInteractive(ctx, receivedContacts, realm).show();
-            } else {
-                new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
-            }
         }
     }
 
