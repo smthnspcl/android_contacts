@@ -44,6 +44,9 @@ public class FragmentContacts extends Fragment {
         ButterKnife.bind(this, v);
         recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         recycler.setAdapter(new VHRealmAdapter<>(VHContact.class, realm.where(Contact.class).findAll()));
+        if(realm.where(Contact.class).findAll().size() == 0){
+
+        }
         return v;
     }
 }

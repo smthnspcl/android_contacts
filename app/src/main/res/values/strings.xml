@@ -45,4 +45,6 @@
     <string name="sending">sending</string>
     <string name="receiving">receiving</string>
     <string name="no_contacts_received">no contacts received</string>
+    <string name="import_">import</string>
+    <string name="message_contacts_look_empty">it does seem like you do not have any contacts in his database. do you want to import from your contacts app?</string>
 </resources>
