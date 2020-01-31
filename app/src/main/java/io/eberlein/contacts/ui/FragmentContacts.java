@@ -38,8 +38,6 @@ public class FragmentContacts extends Fragment {
         this.realm = realm;
     }
 
-
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {

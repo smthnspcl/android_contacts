@@ -24,11 +24,13 @@ import butterknife.ButterKnife;
 import io.eberlein.contacts.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.dialogs.DialogAddress;
+import io.eberlein.contacts.dialogs.DialogChooseNumber;
 import io.eberlein.contacts.dialogs.DialogContact;
 import io.eberlein.contacts.dialogs.DialogEmailAddress;
 import io.eberlein.contacts.dialogs.DialogNote;
 import io.eberlein.contacts.dialogs.DialogPhoneNumber;
 import io.eberlein.contacts.objects.Settings;
+import io.eberlein.contacts.objects.events.EventCall;
 import io.eberlein.contacts.objects.events.EventDeleteAddress;
 import io.eberlein.contacts.objects.events.EventDeleteContact;
 import io.eberlein.contacts.objects.events.EventDeleteEmailAddress;
@@ -40,6 +42,7 @@ import io.eberlein.contacts.objects.events.EventSelectedContact;
 import io.eberlein.contacts.objects.events.EventSelectedEmailAddress;
 import io.eberlein.contacts.objects.events.EventSelectedNote;
 import io.eberlein.contacts.objects.events.EventSelectedPhoneNumber;
+import io.eberlein.contacts.objects.events.EventSms;
 import io.eberlein.contacts.ui.FragmentContacts;
 import io.eberlein.contacts.ui.FragmentDecrypt;
 import io.eberlein.contacts.ui.FragmentEncrypt;
@@ -168,6 +171,15 @@ public class MainActivity extends AppCompatActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventDeleteNote(EventDeleteNote e){
         e.getObject().delete();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventCall(EventCall e){
+        new DialogChooseNumber(this, e.getObject(), true).show();
+    }
+
+    public void onEventSms(EventSms e){
+        new DialogChooseNumber(this, e.getObject(), false).show();
     }
 
     private void initDB(String password){

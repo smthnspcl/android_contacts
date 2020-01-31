@@ -6,19 +6,22 @@ import org.greenrobot.eventbus.EventBus;
 
 import butterknife.OnClick;
 import io.eberlein.contacts.R;
+import io.eberlein.contacts.dialogs.DialogChooseNumber;
 import io.eberlein.contacts.objects.Contact;
+import io.eberlein.contacts.objects.events.EventCall;
 import io.eberlein.contacts.objects.events.EventDeleteContact;
 import io.eberlein.contacts.objects.events.EventSelectedContact;
+import io.eberlein.contacts.objects.events.EventSms;
 
 public class VHContact extends VH<Contact> {
     @OnClick(R.id.btn_one)
     void onBtnOneClicked(){
-        // todo intent to phone
+        EventBus.getDefault().post(new EventCall(object));
     }
 
     @OnClick(R.id.btn_two)
     void onBtnTwoClicked(){
-        // todo intent to sms
+        EventBus.getDefault().post(new EventSms(object));
     }
 
     public VHContact(View v){

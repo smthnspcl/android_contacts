@@ -53,4 +53,5 @@
     <string name="let_me_enter_a_password">let me enter a password</string>
     <string name="no_password_entered">no password entered</string>
     <string name="password_length_must_be_smaller_32">password length must be smaller than 64 chars</string>
+    <string name="choose_number">choose number</string>
 </resources>
