@@ -260,6 +260,12 @@ public class FragmentSync extends Fragment {
         EventBus.getDefault().register(this);
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        BT.Connector.unregister(ctx);
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {

@@ -98,24 +98,19 @@ public class BT {
         };
 
         static void init(Context ctx){
-            addReceiver(ctx, deviceFoundReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-            addReceiver(ctx, discoveryStartedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED));
-            addReceiver(ctx, discoveryFinishedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+            ctx.registerReceiver(deviceFoundReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+            ctx.registerReceiver(discoveryStartedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED));
+            ctx.registerReceiver(discoveryFinishedReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
         }
 
         public static List<BluetoothDevice> getDevices() {
             return devices;
         }
 
-        static void addReceiver(Context ctx, BroadcastReceiver br, IntentFilter inF){
-            receivers.add(br);
-            ctx.registerReceiver(br, inF);
-        }
-
         static void unregisterReceivers(Context ctx){
-            for(BroadcastReceiver br : receivers) {
-                if(br != null) ctx.unregisterReceiver(br);
-            }
+            ctx.unregisterReceiver(deviceFoundReceiver);
+            ctx.unregisterReceiver(discoveryStartedReceiver);
+            ctx.unregisterReceiver(discoveryFinishedReceiver);
         }
 
         public static boolean startDiscovery(OnEventListener oel){
@@ -137,7 +132,6 @@ public class BT {
 
     public static void destroy(Context ctx){
         ClassicScanner.unregisterReceivers(ctx);
-        Connector.unregister(ctx);
     }
 
     public static void enable(){
@@ -212,7 +206,7 @@ public class BT {
             return socket;
         }
 
-        static void unregister(Context ctx){
+        public static void unregister(Context ctx){
             ctx.unregisterReceiver(connectionReceiver);
         }
     }

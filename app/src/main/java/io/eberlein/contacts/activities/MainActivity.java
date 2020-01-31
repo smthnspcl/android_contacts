@@ -8,11 +8,11 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.Toast;
+
+import com.blankj.utilcode.util.AppUtils;
 import com.blankj.utilcode.util.FragmentUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -52,8 +52,7 @@ import io.realm.Realm;
 import static io.eberlein.contacts.Static.getRealm;
 
 
-// todo add vcf/db export
-// todo add network sync
+// todo add csv/vcf import/export
 
 
 public class MainActivity extends AppCompatActivity {
@@ -66,8 +65,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        BT.create(this);
         Realm.init(this);
+        BT.create(this);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         setSupportActionBar(toolbar);
@@ -106,21 +105,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         EventBus.getDefault().unregister(this);
+        finish();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        realm.close();
         BT.destroy(this);
+        if(realm != null) realm.close();
+        AppUtils.exitApp();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventEncryptionDone(EventEncryptionDone e){
         initDB(e.getObject());
-        showOptionsMenu = true;
-        invalidateOptionsMenu();
-        FragmentUtils.replace(getSupportFragmentManager(), new FragmentContacts(realm), R.id.fragment_host);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -178,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
         new DialogChooseNumber(this, e.getObject(), true).show();
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventSms(EventSms e){
         new DialogChooseNumber(this, e.getObject(), false).show();
     }
@@ -191,14 +190,15 @@ public class MainActivity extends AppCompatActivity {
             invalidateOptionsMenu();
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentEncrypt(settings), R.id.fragment_host);
         } else {
-            showOptionsMenu = true;
-            invalidateOptionsMenu();
-
             realm = getRealm(settings, password);
-            if(realm == null){
-                FragmentUtils.replace(getSupportFragmentManager(), new FragmentDecrypt(), R.id.fragment_host);
-            } else {
+            if(realm != null && !realm.isEmpty()){
+                showOptionsMenu = true;
+                invalidateOptionsMenu();
                 FragmentUtils.replace(getSupportFragmentManager(), new FragmentContacts(realm), R.id.fragment_host);
+            } else {
+                showOptionsMenu = false;
+                invalidateOptionsMenu();
+                FragmentUtils.replace(getSupportFragmentManager(), new FragmentDecrypt(), R.id.fragment_host);
             }
         }
     }

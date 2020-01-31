@@ -18,16 +18,22 @@ public class Static {
         return getRealm(Realm.getDefaultInstance().where(Settings.class).findFirst(), password);
     }
 
-    public static Realm getRealm(Settings settings, String password){
+    public static Realm getRealm(Settings settings, String password) {
         RealmConfiguration.Builder rcb = new RealmConfiguration.Builder();
         rcb.name("contacts");
-        if(settings.isEncrypted()) {
+        if (settings.isEncrypted()) {
             if (password != null && !password.isEmpty()) rcb.encryptionKey(password.getBytes());
             else return null;
         }
         RealmConfiguration rc = rcb.build();
         Realm.setDefaultConfiguration(rc);
-        return Realm.getInstance(rc);
+        try {
+            return Realm.getInstance(rc);
+        } catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+
     }
 
     public static void syncContact(Contact nc, Realm realm){
