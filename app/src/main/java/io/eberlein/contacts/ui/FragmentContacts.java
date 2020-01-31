@@ -18,6 +18,7 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHRealmAdapter;
+import io.eberlein.contacts.dialogs.DialogImport;
 import io.eberlein.contacts.objects.Contact;
 import io.eberlein.contacts.objects.events.EventSelectedContact;
 import io.eberlein.contacts.viewholders.VHContact;
@@ -37,6 +38,8 @@ public class FragmentContacts extends Fragment {
         this.realm = realm;
     }
 
+
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -44,9 +47,7 @@ public class FragmentContacts extends Fragment {
         ButterKnife.bind(this, v);
         recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         recycler.setAdapter(new VHRealmAdapter<>(VHContact.class, realm.where(Contact.class).findAll()));
-        if(realm.where(Contact.class).findAll().size() == 0){
-
-        }
+        if(realm.where(Contact.class).findAll().size() == 0) new DialogImport(getContext()).show();
         return v;
     }
 }

@@ -7,6 +7,8 @@ import android.os.Bundle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -94,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         EventBus.getDefault().register(this);
-        initDB("");
+        initDB(null);
     }
 
     @Override
@@ -182,11 +184,10 @@ public class MainActivity extends AppCompatActivity {
 
             realm = getRealm(settings, password);
             if(realm == null){
-                Toast.makeText(this, "password incorrect or database damaged", Toast.LENGTH_LONG).show();
                 FragmentUtils.replace(getSupportFragmentManager(), new FragmentDecrypt(), R.id.fragment_host);
+            } else {
+                FragmentUtils.replace(getSupportFragmentManager(), new FragmentContacts(realm), R.id.fragment_host);
             }
-
-            FragmentUtils.replace(getSupportFragmentManager(), new FragmentContacts(realm), R.id.fragment_host);
         }
     }
 

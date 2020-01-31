@@ -22,6 +22,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import io.eberlein.contacts.R;
+import io.eberlein.contacts.Static;
 import io.eberlein.contacts.objects.Settings;
 import io.eberlein.contacts.objects.events.EventEncryptionDone;
 import io.realm.Realm;
@@ -40,16 +41,15 @@ public class FragmentEncrypt extends Fragment {
     @OnClick(R.id.btn_generate)
     void btnGenerateClicked(){
         realm.beginTransaction();
-        settings.setMasterKeyGenerated(true);
         realm.commitTransaction();
     }
 
     @OnClick(R.id.btn_cancel)
     void btnCancelClicked(){
         new AlertDialog.Builder(getActivity())
-                .setTitle("warning!")
-                .setMessage("the contact data you enter won't be protected.")
-                .setPositiveButton("i understand", new DialogInterface.OnClickListener() {
+                .setTitle(R.string.warning)
+                .setMessage(R.string.message_data_will_not_be_encrypted)
+                .setPositiveButton(R.string.i_understand, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         realm.beginTransaction();
@@ -60,7 +60,7 @@ public class FragmentEncrypt extends Fragment {
                         EventBus.getDefault().post(new EventEncryptionDone(null));
                     }
                 })
-                .setNegativeButton("let me enter a password", new DialogInterface.OnClickListener() {
+                .setNegativeButton(R.string.let_me_enter_a_password, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
@@ -70,22 +70,16 @@ public class FragmentEncrypt extends Fragment {
 
     @OnClick(R.id.btn_encrypt)
     void btnEncryptClicked(){
-        boolean done = false;
         String password = this.password.getText().toString();
-        if(password.isEmpty()) Toast.makeText(getContext(), "no password specified", Toast.LENGTH_LONG).show();
+        if(password.isEmpty()) Toast.makeText(getContext(), R.string.no_password_entered, Toast.LENGTH_LONG).show();
+        else if(password.length() > 64) Toast.makeText(getContext(), R.string.password_length_must_be_smaller_32, Toast.LENGTH_LONG).show();
         else {
+            password = Static.fill64Bytes(password);
             realm.beginTransaction();
-            try {
-                settings.setEncrypted(true);
-                settings.setEncryptionKey(password);
-                settings.setFirstRun(false);
-                done = true;
-            } catch (GeneralSecurityException | UnsupportedEncodingException e){
-                e.printStackTrace();
-                Toast.makeText(getContext(), "could not encrypt with password", Toast.LENGTH_LONG).show();
-            }
+            settings.setEncrypted(true);
+            settings.setFirstRun(false);
             realm.commitTransaction();
-            if(done) EventBus.getDefault().post(new EventEncryptionDone(password));
+            EventBus.getDefault().post(new EventEncryptionDone(password));
         }
     }
 

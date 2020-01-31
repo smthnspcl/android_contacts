@@ -47,4 +47,10 @@
     <string name="no_contacts_received">no contacts received</string>
     <string name="import_">import</string>
     <string name="message_contacts_look_empty">it does seem like you do not have any contacts in his database. do you want to import from your contacts app?</string>
+    <string name="warning">warning!</string>
+    <string name="message_data_will_not_be_encrypted">all entered data will not be encrypted</string>
+    <string name="i_understand">i understand</string>
+    <string name="let_me_enter_a_password">let me enter a password</string>
+    <string name="no_password_entered">no password entered</string>
+    <string name="password_length_must_be_smaller_32">password length must be smaller than 64 chars</string>
 </resources>
