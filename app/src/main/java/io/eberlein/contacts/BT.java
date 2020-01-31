@@ -62,9 +62,9 @@ public class BT {
 
         private static OnEventListener onEventListener;
         private static List<BluetoothDevice> devices = new ArrayList<>();
-        private static List<BroadcastReceiver> receivers = new ArrayList<>();
+        private static final List<BroadcastReceiver> receivers = new ArrayList<>();
 
-        private static BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
+        private static final BroadcastReceiver deviceFoundReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if(BluetoothDevice.ACTION_FOUND.equals(intent.getAction())){
@@ -76,7 +76,7 @@ public class BT {
             }
         };
 
-        private static BroadcastReceiver discoveryFinishedReceiver = new BroadcastReceiver() {
+        private static final BroadcastReceiver discoveryFinishedReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())){
@@ -87,7 +87,7 @@ public class BT {
             }
         };
 
-        private static BroadcastReceiver discoveryStartedReceiver = new BroadcastReceiver() {
+        private static final BroadcastReceiver discoveryStartedReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(intent.getAction())){
@@ -344,6 +344,7 @@ public class BT {
             private static final String TAG = "BT.Client.Reader";
 
             static final String DATA_IS_READY = "READY";
+            static final int MSG_READER_DEAD = -1;
             static final int MSG_READER_READY = 0;
             static final int MSG_REMOTE_READY = 1;
 
@@ -365,7 +366,6 @@ public class BT {
             private void run(){
                 int bytes;
                 byte[] buffer = new byte[1024];
-                Log.d(TAG, "receiving messages");
                 writerInterface.inform(MSG_READER_READY);
                 while (doRun){
                     try {
@@ -375,6 +375,8 @@ public class BT {
                         else onDataReceivedInterface.onReceived(data);
                     } catch (IOException e){
                         e.printStackTrace();
+                        doRun = false;
+                        writerInterface.inform(MSG_READER_DEAD);
                     }
                 }
                 readerInterface.finished();
@@ -418,18 +420,19 @@ public class BT {
                 doRun = true;
             }
 
-            private void writeFlush(String data){
+            private boolean writeFlush(String data){
                 try {
                     Log.d(TAG, "sending: " + data);
                     outputStream.write(data.getBytes());
                     outputStream.flush();
+                    return true;
                 } catch (IOException e) {
                     e.printStackTrace();
+                    return false;
                 }
             }
 
             private void run(){
-                Log.d(TAG, "sending data");
                 while (doRun){
                     if(!readerIsReady) continue;
                     if(!remoteReaderIsReady) {
@@ -441,7 +444,7 @@ public class BT {
                         }
                     } else {
                         for(String s : sendData) {
-                            writeFlush(s);
+                            doRun = writeFlush(s);
                             sendData.remove(s);
                         }
                     }
@@ -477,6 +480,7 @@ public class BT {
             public void onMessage(int message) {
                 if(message == Reader.MSG_READER_READY) readerIsReady = true;
                 else if(message == Reader.MSG_REMOTE_READY) remoteReaderIsReady = true;
+                else if(message == Reader.MSG_READER_DEAD) doRun = false;
             }
         }
 
@@ -563,6 +567,11 @@ public class BT {
         public void stop(){
             if(reader != null) reader.stop();
             if(writer != null) writer.stop();
+            try {
+                socket.close();
+            } catch (IOException e){
+                e.printStackTrace();
+            }
         }
 
         @Override

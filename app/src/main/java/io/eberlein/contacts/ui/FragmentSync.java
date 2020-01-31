@@ -41,7 +41,6 @@ import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.dialogs.DialogChooseContacts;
 import io.eberlein.contacts.dialogs.DialogProgress;
 import io.eberlein.contacts.dialogs.DialogSyncConfiguration;
-import io.eberlein.contacts.dialogs.DialogSyncInteractive;
 import io.eberlein.contacts.dialogs.DialogSyncNonInteractive;
 import io.eberlein.contacts.objects.ClientSyncConfiguration;
 import io.eberlein.contacts.objects.Contact;
@@ -114,16 +113,9 @@ public class FragmentSync extends Fragment {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventReceivedData(EventReceivedData e){
         List<Contact> receivedContacts = e.getObject();
+        client.stop();
         Log.d(TAG, "received " + receivedContacts.size() + " contacts");
-        if(hostServer.isChecked()){
-            new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
-        } else {
-            if(clientSyncConfiguration.isInteractive()){
-                new DialogSyncInteractive(ctx, receivedContacts, realm).show();
-            } else {
-                new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
-            }
-        }
+        new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
     }
 
     private BT.OnDataReceivedInterface onDataReceivedInterface = new BT.OnDataReceivedInterface() {
@@ -133,7 +125,6 @@ public class FragmentSync extends Fragment {
             List<Contact> contacts = GsonUtils.fromJson(data, GsonUtils.getListType(Contact.class));
             Log.d(TAG, "received " + contacts.size() + " contacts");
             EventBus.getDefault().post(new EventReceivedData(contacts));
-            client.stop();
         }
     };
 
@@ -187,11 +178,7 @@ public class FragmentSync extends Fragment {
     @OnCheckedChanged(R.id.cb_server)
     void onCheckedChangedServer(){
         if(hostServer.isChecked()){
-            BT.setDiscoverable(getContext(), DISCOVERABLE_TIME);
-            handler.postDelayed(disableServerRunnable, DISCOVERABLE_TIME * 1000);
-            server = new Server();
-            server.execute();
-            btnScan.hide();
+            new DialogChooseContacts(ctx, savedContacts).show();
         } else {
             server.cancel(true);
             btnScan.show();
@@ -224,7 +211,15 @@ public class FragmentSync extends Fragment {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventSyncSelectedContacts(EventSyncSelectedContacts e){
         savedContacts = e.getObject();
-        connect();
+        if(hostServer.isChecked()){
+            BT.setDiscoverable(ctx, DISCOVERABLE_TIME);
+            handler.postDelayed(disableServerRunnable, DISCOVERABLE_TIME * 1000);
+            server = new Server();
+            server.execute();
+            btnScan.hide();
+        } else {
+            connect();
+        }
     }
 
     private void connect(){

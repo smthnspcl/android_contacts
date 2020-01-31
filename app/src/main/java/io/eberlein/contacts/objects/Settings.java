@@ -1,5 +1,4 @@
 package io.eberlein.contacts.objects;
-import com.blankj.utilcode.util.LogUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;

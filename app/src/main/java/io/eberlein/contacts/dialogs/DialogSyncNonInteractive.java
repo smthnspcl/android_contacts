@@ -39,10 +39,14 @@ public class DialogSyncNonInteractive extends DialogBase<List<Contact>> {
     public void show() {
         dialog = builder.setTitle(R.string.sync).setCancelable(false).show();
         int max = getObject().size();
-        progressMax.setText(String.valueOf(max));
-        for(int i=0; i<max; i++){
-            progress.setText(String.valueOf(i + 1));
-            Static.syncContact(getObject().get(i), realm);
+        if(max > 0) {
+            progressMax.setText(String.valueOf(max));
+            for (int i = 0; i < max; i++) {
+                progress.setText(String.valueOf(i + 1));
+                Static.syncContact(getObject().get(i), realm);
+            }
+        } else {
+            progress.setText(getContext().getString(R.string.no_contacts_received));
         }
         progressBar.setVisibility(View.GONE);
         ok.setVisibility(View.VISIBLE);

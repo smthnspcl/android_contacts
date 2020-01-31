@@ -44,4 +44,5 @@
     <string name="unable_sync_contacts">without bluetooth you will not be able to synchronize your contacts between your devices</string>
     <string name="sending">sending</string>
     <string name="receiving">receiving</string>
+    <string name="no_contacts_received">no contacts received</string>
 </resources>
