@@ -5,6 +5,8 @@
 we wanted a contacts app with all the usual functions but proper encryption and synchronization
 
 #### features
-- encryption (4096 byte key encrypted by user password)
-- network synchronization
-- and everything your stock app features
+- [x] option for database encryption
+- [x] bluetooth sync
+- [x] all / most fields of the stock app
+- [ ] importing from stock app / csv / vcf
+- [ ] exporing to vcf / csv
