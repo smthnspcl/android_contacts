@@ -36,6 +36,10 @@ public class Static {
     public static void syncContact(Contact nc, Realm realm){
         Contact oc = realm.where(Contact.class).equalTo("uuid", nc.getUuid()).findFirst();
         if(oc != null) oc.sync(nc);
-        else realm.copyToRealm(nc);
+        else {
+            realm.beginTransaction();
+            realm.copyToRealm(nc);
+            realm.commitTransaction();
+        }
     }
 }

@@ -48,8 +48,6 @@ import java.util.UUID;
 
 
 public class BT {
-    private static final String TAG = "BT";
-
     private static BluetoothManager manager;
     private static BluetoothAdapter adapter;
 
@@ -433,20 +431,18 @@ public class BT {
             private void run(){
                 Log.d(TAG, "sending data");
                 while (doRun){
-                    if(readerIsReady) {
-                        if(!remoteReaderIsReady) {
-                            writeFlush(Reader.DATA_IS_READY);
-                            try {
-                                Thread.sleep(420);
-                            } catch (InterruptedException e){
-                                e.printStackTrace();
-                            }
+                    if(!readerIsReady) continue;
+                    if(!remoteReaderIsReady) {
+                        writeFlush(Reader.DATA_IS_READY);
+                        try {
+                            Thread.sleep(420);
+                        } catch (InterruptedException e){
+                            e.printStackTrace();
                         }
-                        else {
-                            for(String s : sendData) {
-                                writeFlush(s);
-                                sendData.remove(s);
-                            }
+                    } else {
+                        for(String s : sendData) {
+                            writeFlush(s);
+                            sendData.remove(s);
                         }
                     }
                 }

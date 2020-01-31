@@ -38,13 +38,19 @@ import butterknife.OnClick;
 import io.eberlein.contacts.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
+import io.eberlein.contacts.dialogs.DialogChooseContacts;
+import io.eberlein.contacts.dialogs.DialogProgress;
 import io.eberlein.contacts.dialogs.DialogSyncConfiguration;
 import io.eberlein.contacts.dialogs.DialogSyncInteractive;
 import io.eberlein.contacts.dialogs.DialogSyncNonInteractive;
 import io.eberlein.contacts.objects.ClientSyncConfiguration;
 import io.eberlein.contacts.objects.Contact;
+import io.eberlein.contacts.objects.events.EventClientFinished;
+import io.eberlein.contacts.objects.events.EventClientReady;
 import io.eberlein.contacts.objects.events.EventClientSync;
+import io.eberlein.contacts.objects.events.EventReceivedData;
 import io.eberlein.contacts.objects.events.EventSelectedBluetoothDevice;
+import io.eberlein.contacts.objects.events.EventSyncSelectedContacts;
 import io.eberlein.contacts.viewholders.VHBluetoothDevice;
 import io.realm.Realm;
 
@@ -59,15 +65,15 @@ public class FragmentSync extends Fragment {
     private static final String SERVICE_NAME = "contactSyncServer";
     private static final UUID SERVICE_UUID = UUID.fromString("2b61e90c-161b-4683-b197-d8129f0fa8d0");
 
-    private List<BluetoothDevice> devices;
+    private List<BluetoothDevice> devices = new ArrayList<>();
+    private List<Contact> savedContacts = new ArrayList<>();
 
     private ClientSyncConfiguration clientSyncConfiguration = null;
-    private String savedContacts;
 
-    private AlertDialog dialogWorking;
+    private AlertDialog dialogProgress;
 
-    private Server server;
-    private Client client;
+    private Server server = null;
+    private Client client = null;
 
     private Handler handler = new Handler();
 
@@ -105,7 +111,9 @@ public class FragmentSync extends Fragment {
         }
     };
 
-    private void sync(List<Contact> receivedContacts){
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventReceivedData(EventReceivedData e){
+        List<Contact> receivedContacts = e.getObject();
         Log.d(TAG, "received " + receivedContacts.size() + " contacts");
         if(hostServer.isChecked()){
             new DialogSyncNonInteractive(ctx, receivedContacts, realm).show();
@@ -124,9 +132,20 @@ public class FragmentSync extends Fragment {
             Log.d(TAG, "onReceived: " + data);
             List<Contact> contacts = GsonUtils.fromJson(data, GsonUtils.getListType(Contact.class));
             Log.d(TAG, "received " + contacts.size() + " contacts");
-            sync(contacts);
+            EventBus.getDefault().post(new EventReceivedData(contacts));
+            client.stop();
         }
     };
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventClientReady(EventClientReady e){
+        dialogProgress = new DialogProgress().show(ctx, getString(R.string.sync), getString(R.string.sending) + " / " + getString(R.string.receiving));
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventClientFinished(EventClientFinished e){
+        dialogProgress.dismiss();
+    }
 
     @SuppressLint("StaticFieldLeak")
     private class Client extends BT.Client {
@@ -137,15 +156,14 @@ public class FragmentSync extends Fragment {
         @Override
         public void onReady() {
             Log.d(TAG, "onReady");
-            dialogWorking.show();
-            addSendData(savedContacts);
+            EventBus.getDefault().post(new EventClientReady());
+            addSendData(GsonUtils.toJson(savedContacts));
         }
 
         @Override
         public void onFinished() {
             Log.d(TAG, "onFinished");
-            stop();
-            dialogWorking.dismiss();
+            EventBus.getDefault().post(new EventClientFinished());
         }
     }
 
@@ -199,26 +217,39 @@ public class FragmentSync extends Fragment {
 
         @Override
         public void onDisconnected() {
-            client.stop();
+            if(client != null) client.stop();
         }
     };
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onEventClientSync(EventClientSync e){
-        clientSyncConfiguration = e.getObject();
-        if(!BT.isDeviceBonded(clientSyncConfiguration.getDevice())){
+    public void onEventSyncSelectedContacts(EventSyncSelectedContacts e){
+        savedContacts = e.getObject();
+        connect();
+    }
+
+    private void connect(){
+        if (!BT.isDeviceBonded(clientSyncConfiguration.getDevice())) {
             clientSyncConfiguration.getDevice().createBond();
         } else {
-            BT.Connector.register(getContext(), connectionInterface);
+            BT.Connector.register(ctx, connectionInterface);
             BT.Connector.connect(clientSyncConfiguration.getDevice(), SERVICE_UUID);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventClientSync(EventClientSync e){
+        clientSyncConfiguration = e.getObject();
+        if(clientSyncConfiguration.isInteractive()){
+            new DialogChooseContacts(ctx, savedContacts).show();
+        } else {
+            connect();
         }
     }
 
     public FragmentSync(Context ctx, Realm realm){
         this.ctx = ctx;
         this.realm = realm;
-        devices = new ArrayList<>();
-        savedContacts = GsonUtils.toJson(realm.copyFromRealm(realm.where(Contact.class).findAll()));
+        savedContacts = realm.copyFromRealm(realm.where(Contact.class).findAll());
     }
 
     @Override

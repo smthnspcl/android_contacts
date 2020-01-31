@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class DialogSyncNonInteractive extends DialogBase<List<Contact>> {
     @BindView(R.id.tv_progress) TextView progress;
     @BindView(R.id.tv_progress_max) TextView progressMax;
     @BindView(R.id.btn_ok) Button ok;
+    @BindView(R.id.progressBar) ProgressBar progressBar;
 
     public DialogSyncNonInteractive(Context context, List<Contact> contacts, Realm realm){
         super(context, contacts, R.layout.dialog_sync_noninteractive);
@@ -39,9 +41,10 @@ public class DialogSyncNonInteractive extends DialogBase<List<Contact>> {
         int max = getObject().size();
         progressMax.setText(String.valueOf(max));
         for(int i=0; i<max; i++){
-            progress.setText(String.valueOf(i));
+            progress.setText(String.valueOf(i + 1));
             Static.syncContact(getObject().get(i), realm);
         }
+        progressBar.setVisibility(View.GONE);
         ok.setVisibility(View.VISIBLE);
     }
 }
