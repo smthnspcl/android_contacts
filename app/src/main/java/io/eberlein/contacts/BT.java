@@ -13,14 +13,17 @@ import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 public class BT {
@@ -293,7 +296,16 @@ public class BT {
 
     interface ClientInterface {
         void onReady();
+        void onExecuted();
         void onFinished();
+    }
+
+    interface ReaderInterface {
+        void finished();
+    }
+
+    interface WriterInterface {
+        void finished();
     }
 
     public interface OnDataReceivedInterface {
@@ -304,35 +316,29 @@ public class BT {
     // isn't receiving any data
     @SuppressLint("StaticFieldLeak")
     public static abstract class Client extends AsyncTask<Void, Void, Void> implements ClientInterface {
+
         public static class Reader extends AsyncTask<Void, Void, Void> {
             private static final String TAG = "BT.Client.Reader";
             private InputStream inputStream;
             private boolean doRun;
             private OnDataReceivedInterface onDataReceivedInterface;
+            private ReaderInterface readerInterface;
 
-            Reader(InputStream inputStream, OnDataReceivedInterface onDataReceivedInterface){
+            Reader(InputStream inputStream, OnDataReceivedInterface onDataReceivedInterface, ReaderInterface readerInterface){
                 this.inputStream = inputStream;
                 this.onDataReceivedInterface = onDataReceivedInterface;
-                doRun = inputStream != null;
-                Log.d(TAG, (doRun ? "not " : "") + "going to run");
+                this.readerInterface = readerInterface;
+                doRun = true;
             }
 
             private void run(){
-                // BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-                byte[] buffer = new byte[1024];
-                int bytes;
+                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
                 Log.d(TAG, "receiving messages");
                 while (doRun){
-                    try {
-                        bytes = inputStream.read(buffer);
-                        Log.d(TAG, "received " + bytes + " bytes");
-                        String data = new String(buffer, 0, bytes);
-                        onDataReceivedInterface.onReceived(data);
-                        Log.d(TAG, "received: " + data);
-                    } catch (IOException e){
-                        e.printStackTrace();
-                    }
+                    String data = br.lines().collect(Collectors.joining());
+                    onDataReceivedInterface.onReceived(data);
                 }
+                readerInterface.finished();
             }
 
             @Override
@@ -347,38 +353,40 @@ public class BT {
                 return null;
             }
 
-            boolean isRunning(){
-                return doRun;
-            }
-
             void stop(){
                 doRun = false;
             }
         }
 
         public static class Writer extends AsyncTask<Void, Void, Void> {
+            private static final String TAG = "BT.Client.Writer";
             private OutputStream outputStream;
             private boolean doRun;
             private List<String> sendData = new ArrayList<>();
+            private WriterInterface writerInterface;
 
-            Writer(OutputStream outputStream){
+            Writer(OutputStream outputStream, WriterInterface writerInterface){
                 this.outputStream = outputStream;
-                doRun = outputStream != null;
+                this.writerInterface = writerInterface;
+                doRun = true;
             }
 
             private void run(){
+                Log.d(TAG, "sending data");
                 OutputStreamWriter osw = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
                 while (doRun){
-                    for(String s : sendData){
+                    for(String s : sendData) {
                         try {
+                            Log.d(TAG, "sending: " + s);
                             osw.write(s);
                             osw.flush();
                             sendData.remove(s);
-                        } catch (IOException e){
+                        } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
                 }
+                writerInterface.finished();
             }
 
             @Override
@@ -397,8 +405,8 @@ public class BT {
                 sendData.add(data);
             }
 
-            boolean isRunning(){
-                return doRun;
+            void addSendData(List<String> data){
+                sendData.addAll(data);
             }
 
             void stop(){
@@ -414,6 +422,25 @@ public class BT {
 
         private Reader reader = null;
         private Writer writer = null;
+
+        private boolean readerFinished = false;
+        private boolean writerFinished = false;
+
+        private ReaderInterface readerInterface = new ReaderInterface() {
+            @Override
+            public void finished() {
+                readerFinished = true;
+                if(writerFinished) onFinished();
+            }
+        };
+
+        private WriterInterface writerInterface = new WriterInterface() {
+            @Override
+            public void finished() {
+                writerFinished = true;
+                if(readerFinished) onFinished();
+            }
+        };
 
         public Client(BluetoothSocket socket, OnDataReceivedInterface onDataReceivedInterface){
             this.socket = socket;
@@ -434,24 +461,27 @@ public class BT {
             return true;
         }
 
+        @Override
+        public void onExecuted() {
+            Log.d(TAG, "executed reader and writer");
+        }
+
         void run() {
             if(!preCheck()) return;
             try {
-                reader = new Reader(socket.getInputStream(), onDataReceivedInterface);
-                writer = new Writer(socket.getOutputStream());
-                reader.execute(); writer.execute();
+                InputStream is = socket.getInputStream();
+                if(is == null) Log.wtf(TAG, "inputstream is null");
+                OutputStream os = socket.getOutputStream();
+                if(os == null) Log.wtf(TAG, "outputstream is null");
+                reader = new Reader(is, onDataReceivedInterface, readerInterface);
+                writer = new Writer(os, writerInterface);
                 onReady();
-                while (reader.isRunning() && writer.isRunning()){
-                    try {
-                        Thread.sleep(420);
-                    }catch (InterruptedException e){
-                        e.printStackTrace();
-                    }
-                }
+                reader.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                writer.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                onExecuted();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            onFinished();
         }
 
         public void stop(){
@@ -465,7 +495,11 @@ public class BT {
             return null;
         }
 
-        protected void setSendData(String data){
+        protected void addSendData(String data){
+            writer.addSendData(data);
+        }
+
+        protected void addSendData(List<String> data){
             writer.addSendData(data);
         }
     }

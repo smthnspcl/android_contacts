@@ -68,7 +68,7 @@ public class FragmentSync extends Fragment {
     private List<BluetoothDevice> devices;
 
     private ClientSyncConfiguration clientSyncConfiguration = null;
-    private List<Contact> savedContacts;
+    private String savedContacts;
 
     private AlertDialog dialogSending;
     private AlertDialog dialogReceiving;
@@ -130,7 +130,7 @@ public class FragmentSync extends Fragment {
         @Override
         public void onReady() {
             Log.d(TAG, "onReady");
-            setSendData(GsonUtils.toJson(savedContacts));
+            addSendData(savedContacts);
         }
 
         @Override
@@ -242,7 +242,7 @@ public class FragmentSync extends Fragment {
         this.ctx = ctx;
         this.realm = realm;
         devices = new ArrayList<>();
-        savedContacts = realm.copyFromRealm(realm.where(Contact.class).findAll());
+        savedContacts = GsonUtils.toJson(realm.copyFromRealm(realm.where(Contact.class).findAll()));
     }
 
     @Override
