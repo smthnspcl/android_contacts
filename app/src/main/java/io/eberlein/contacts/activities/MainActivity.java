@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        BT.init(this);
+        BT.create(this);
         Realm.init(this);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
@@ -107,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         realm.close();
+        BT.destroy(this);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

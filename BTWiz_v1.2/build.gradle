@@ -1,2 +1,0 @@
-configurations.maybeCreate("default")
-artifacts.add("default", file('BTWiz_v1.2.jar'))
