@@ -156,7 +156,7 @@ public class BT {
         void onDisconnected();
     }
 
-    public static abstract class Connector {
+    public static class Connector {
         private static ConnectionInterface connectionInterface;
         private static BluetoothSocket socket = null;
 
@@ -319,9 +319,9 @@ public class BT {
         public static class Reader extends AsyncTask<Void, Void, Void> implements IPCInterface {
             private static final String TAG = "BT.Client.Reader";
 
-            public static final String DATA_IS_READY = "READY";
-            public static final int MSG_READER_READY = 0;
-            public static final int MSG_REMOTE_READY = 1;
+            static final String DATA_IS_READY = "READY";
+            static final int MSG_READER_READY = 0;
+            static final int MSG_REMOTE_READY = 1;
 
             private InputStream inputStream;
             private boolean doRun;
