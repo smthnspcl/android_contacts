@@ -11,22 +11,10 @@
         android:layout_height="wrap_content"
         android:text="@string/encrypt" />
 
-    <Button
-        android:id="@+id/btn_generate"
-        android:layout_alignBaseline="@id/et_password"
-        android:layout_alignParentEnd="true"
-        android:layout_marginEnd="8dp"
-        android:text="@string/generate"
-        android:clickable="false"
-        android:enabled="false"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
     <EditText
         android:id="@+id/et_password"
-        android:layout_above="@id/btn_encrypt"
+        android:layout_centerVertical="true"
         android:hint="@string/password"
-        android:layout_toStartOf="@id/btn_generate"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_width="match_parent"
@@ -36,16 +24,18 @@
         android:id="@+id/btn_encrypt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
+        android:layout_marginTop="8dp"
+        android:layout_below="@id/et_password"
+        android:layout_marginStart="16dp"
         android:text="@string/encrypt" />
 
     <Button
         android:id="@+id/btn_cancel"
-        android:layout_below="@id/btn_encrypt"
+        android:layout_alignBaseline="@id/btn_encrypt"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="16dp"
         android:text="@string/do_not_encrypt"
-        android:layout_centerHorizontal="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 </RelativeLayout>

@@ -15,9 +15,6 @@ import androidx.fragment.app.Fragment;
 
 import org.greenrobot.eventbus.EventBus;
 
-import java.io.UnsupportedEncodingException;
-import java.security.GeneralSecurityException;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -36,12 +33,6 @@ public class FragmentEncrypt extends Fragment {
     public FragmentEncrypt(Settings settings){
         this.settings = settings;
         this.realm = settings.getRealm();
-    }
-
-    @OnClick(R.id.btn_generate)
-    void btnGenerateClicked(){
-        realm.beginTransaction();
-        realm.commitTransaction();
     }
 
     @OnClick(R.id.btn_cancel)
