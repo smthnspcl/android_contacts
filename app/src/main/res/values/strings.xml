@@ -7,14 +7,14 @@
     <string name="password">password</string>
     <string name="generate">generate</string>
     <string name="call">call</string>
-    <string name="sms">sms</string>
+    <string name="sms" translatable="false">sms</string>
     <string name="first">first </string>
     <string name="middle">middle</string>
     <string name="last">last</string>
-    <string name="name">name</string>
+    <string name="name" translatable="false">name</string>
     <string name="birthday">birthday</string>
     <string name="street">street</string>
-    <string name="hnr">hnr</string>
+    <string name="hnr" translatable="false">hnr</string>
     <string name="house_number">house number</string>
     <string name="house_nr">house nr</string>
     <string name="postal_code">postal code</string>
@@ -23,7 +23,7 @@
     <string name="notes">notes</string>
     <string name="delete">delete</string>
     <string name="edit">edit</string>
-    <string name="sync">sync</string>
+    <string name="sync" translatable="false">sync</string>
     <string name="discover">discover</string>
     <string name="show">show</string>
     <string name="addresses">addresses</string>
@@ -32,11 +32,11 @@
     <string name="phone_number">phone number</string>
     <string name="save">save</string>
     <string name="cancel">cancel</string>
-    <string name="email">email</string>
+    <string name="email" translatable="false">email</string>
     <string name="interactive">interactive</string>
     <string name="sync_question">sync contacts with this device?</string>
     <string name="is_host">is host</string>
-    <string name="ok">ok</string>
+    <string name="ok" translatable="false">ok</string>
     <string name="host_server">host server</string>
     <string name="could_not_create_server">could not create server</string>
     <string name="created_server">created_server</string>
@@ -54,4 +54,7 @@
     <string name="no_password_entered">no password entered</string>
     <string name="password_length_must_be_smaller_32">password length must be smaller than 64 chars</string>
     <string name="choose_number">choose number</string>
+    <string name="contact_app">contact app</string>
+    <string name="vcf_file">vcf file</string>
+    <string name="csv_file">csv file</string>
 </resources>

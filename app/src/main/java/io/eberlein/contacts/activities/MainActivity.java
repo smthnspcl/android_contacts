@@ -24,6 +24,7 @@ import butterknife.ButterKnife;
 import io.eberlein.abt.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.dialogs.DialogAddress;
+import io.eberlein.contacts.dialogs.DialogChooseImporter;
 import io.eberlein.contacts.dialogs.DialogChooseNumber;
 import io.eberlein.contacts.dialogs.DialogContact;
 import io.eberlein.contacts.dialogs.DialogEmailAddress;
@@ -57,7 +58,6 @@ import static io.eberlein.contacts.Static.getRealm;
 public class MainActivity extends AppCompatActivity {
     private Realm realm;
     private boolean showOptionsMenu = false;
-    private boolean showOptionsMenuSync = true;
 
     @BindView(R.id.toolbar) Toolbar toolbar;
 
@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.BLUETOOTH_ADMIN
                     }, 420);
         } else {
-            showOptionsMenuSync = false;
+            showOptionsMenu = false;
             new AlertDialog.Builder(this)
                     .setTitle(R.string.no_bluetooth_support)
                     .setMessage(R.string.unable_sync_contacts)
@@ -206,13 +206,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_main, menu);
-        for(int i=0; i<menu.size(); i++) {
-            if(menu.getItem(i).getTitle().toString().equals(getString(R.string.sync)) && !showOptionsMenuSync) {
-                menu.getItem(i).setVisible(false);
-            } else {
-                menu.getItem(i).setVisible(showOptionsMenu);
-            }
-        }
+        for (int i = 0; i < menu.size(); i++) menu.getItem(i).setVisible(showOptionsMenu);
         return true;
     }
 
@@ -222,6 +216,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (id == R.id.action_sync) {
             FragmentUtils.replace(getSupportFragmentManager(), new FragmentSync(this, realm), R.id.fragment_host, true);
+        } else if(id == R.id.action_import) {
+            new DialogChooseImporter(this).show();
         }
 
         return super.onOptionsItemSelected(item);
