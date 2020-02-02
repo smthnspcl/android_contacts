@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:id="@+id/rl_detail"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <EditText
+            android:id="@+id/et_name"
+            android:hint="@string/name"
+            android:inputType="text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_street"
+            android:layout_below="@id/et_name"
+            android:hint="@string/street"
+            android:inputType="text"
+            android:layout_toStartOf="@id/et_house_nr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_house_nr"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBaseline="@id/et_street"
+            android:hint="@string/house_nr"
+            android:inputType="number"
+            android:layout_width="128dp"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_postal_code"
+            android:hint="@string/postal"
+            android:inputType="number"
+            android:layout_below="@id/et_street"
+            android:layout_width="128dp"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_city"
+            android:layout_alignBaseline="@id/et_postal_code"
+            android:layout_toEndOf="@id/et_postal_code"
+            android:hint="@string/city"
+            android:inputType="text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_notes"
+            android:gravity="top|start"
+            android:inputType="textMultiLine"
+            android:hint="@string/notes"
+            android:layout_below="@id/et_postal_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+    </RelativeLayout>
+
+
+
+</RelativeLayout>

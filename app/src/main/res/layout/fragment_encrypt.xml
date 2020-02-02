@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:textSize="32sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/encrypt" />
+
+    <Button
+        android:id="@+id/btn_generate"
+        android:layout_alignBaseline="@id/et_password"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="8dp"
+        android:text="@string/generate"
+        android:clickable="false"
+        android:enabled="false"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <EditText
+        android:id="@+id/et_password"
+        android:layout_above="@id/btn_encrypt"
+        android:hint="@string/password"
+        android:layout_toStartOf="@id/btn_generate"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/btn_encrypt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:text="@string/encrypt" />
+
+    <Button
+        android:id="@+id/btn_cancel"
+        android:layout_below="@id/btn_encrypt"
+        android:layout_marginTop="16dp"
+        android:text="@string/do_not_encrypt"
+        android:layout_centerHorizontal="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+</RelativeLayout>
