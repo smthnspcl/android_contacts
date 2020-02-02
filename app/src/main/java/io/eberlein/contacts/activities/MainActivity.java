@@ -8,7 +8,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -22,7 +21,7 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.eberlein.contacts.BT;
+import io.eberlein.abt.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.dialogs.DialogAddress;
 import io.eberlein.contacts.dialogs.DialogChooseNumber;

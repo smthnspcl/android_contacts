@@ -35,7 +35,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
-import io.eberlein.contacts.BT;
+import io.eberlein.abt.BT;
 import io.eberlein.contacts.R;
 import io.eberlein.contacts.adapters.VHAdapter;
 import io.eberlein.contacts.dialogs.DialogChooseContacts;
