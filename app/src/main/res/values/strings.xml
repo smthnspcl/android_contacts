@@ -54,7 +54,8 @@
     <string name="no_password_entered">no password entered</string>
     <string name="password_length_must_be_smaller_32">password length must be smaller than 64 chars</string>
     <string name="choose_number">choose number</string>
-    <string name="contact_app">contact app</string>
+    <string name="contacts">contacts</string>
     <string name="vcf_file">vcf file</string>
     <string name="csv_file">csv file</string>
+    <string name="permission_not_granted">permission not granted</string>
 </resources>

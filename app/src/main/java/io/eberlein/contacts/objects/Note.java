@@ -72,4 +72,20 @@ public class Note extends RealmObject {
         realm.commitTransaction();
         return r;
     }
+
+    public static Note findByNote(Realm realm, String note){
+        return realm.where(Note.class).equalTo("note", note).findFirst();
+    }
+
+    public static Note convert(Realm realm, String note){
+        Note n = findByNote(realm, note);
+        if(n == null){
+            n = Note.create(realm);
+            realm.beginTransaction();
+            n.setName("imported");
+            n.setNote(note);
+            realm.commitTransaction();
+        }
+        return n;
+    }
 }

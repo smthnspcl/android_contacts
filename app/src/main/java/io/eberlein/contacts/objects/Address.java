@@ -1,6 +1,8 @@
 package io.eberlein.contacts.objects;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import io.realm.Realm;
@@ -19,6 +21,10 @@ public class Address extends RealmObject {
     private Date lastModifiedPostalCode;
     private String city;
     private Date lastModifiedCity;
+    private String country;
+    private Date lastModifiedCountry;
+    private String region;
+    private Date lastModifiedRegion;
     private String notes;
     private Date lastModifiedNotes;
 
@@ -73,6 +79,24 @@ public class Address extends RealmObject {
         this.lastModifiedName = new Date();
     }
 
+    public void setCountry(String country) {
+        this.country = country;
+        this.lastModifiedCountry = new Date();
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+        this.lastModifiedRegion = new Date();
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
     public String getUuid() {
         return uuid;
     }
@@ -117,6 +141,14 @@ public class Address extends RealmObject {
         return lastModifiedStreetName;
     }
 
+    public Date getLastModifiedCountry() {
+        return lastModifiedCountry;
+    }
+
+    public Date getLastModifiedRegion() {
+        return lastModifiedRegion;
+    }
+
     public void delete() {
         Realm r = getRealm();
         r.beginTransaction();
@@ -149,6 +181,14 @@ public class Address extends RealmObject {
             notes = address.getNotes();
             lastModifiedNotes = address.getLastModifiedNotes();
         }
+        if(lastModifiedCountry.before(address.getLastModifiedCountry())){
+            country = address.getCountry();
+            lastModifiedCountry = address.getLastModifiedCountry();
+        }
+        if(lastModifiedRegion.before(address.getLastModifiedRegion())){
+            region = address.getRegion();
+            lastModifiedRegion = address.getLastModifiedRegion();
+        }
     }
 
     public static Address create(Realm realm){
@@ -157,5 +197,24 @@ public class Address extends RealmObject {
         r.setUuid(UUID.randomUUID().toString());
         realm.commitTransaction();
         return r;
+    }
+
+    public static List<Address> convert(Realm realm, List<com.github.tamir7.contacts.Address> addresses){
+        List<Address> r = new ArrayList<>();
+        for(com.github.tamir7.contacts.Address a : addresses) r.add(convert(realm, a));
+        return r;
+    }
+
+    public static Address convert(Realm realm, com.github.tamir7.contacts.Address address){
+        Address na = Address.create(realm);
+        realm.beginTransaction();
+        na.setName(address.getLabel());
+        na.setCity(address.getCity());
+        na.setStreetName(address.getStreet());
+        na.setPostalCode(address.getPostcode());
+        na.setCountry(address.getCountry());
+        na.setRegion(address.getRegion());
+        realm.commitTransaction();
+        return na;
     }
 }

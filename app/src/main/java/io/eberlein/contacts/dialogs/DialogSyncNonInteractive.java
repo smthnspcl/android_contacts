@@ -12,7 +12,6 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.OnClick;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.Static;
 import io.eberlein.contacts.objects.Contact;
 import io.realm.Realm;
 
@@ -43,7 +42,7 @@ public class DialogSyncNonInteractive extends DialogBase<List<Contact>> {
             progressMax.setText(String.valueOf(max));
             for (int i = 0; i < max; i++) {
                 progress.setText(String.valueOf(i + 1));
-                Static.syncContact(getObject().get(i), realm);
+                Contact.sync(realm, getObject().get(i));
             }
         } else {
             progress.setText(getContext().getString(R.string.no_contacts_received));

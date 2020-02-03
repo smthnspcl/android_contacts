@@ -1,11 +1,16 @@
 package io.eberlein.contacts.objects;
 
+import com.github.tamir7.contacts.Email;
+
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import io.realm.Realm;
 import io.realm.RealmList;
 import io.realm.RealmObject;
+import io.realm.RealmQuery;
 
 
 public class Contact extends RealmObject{
@@ -148,6 +153,20 @@ public class Contact extends RealmObject{
         r.commitTransaction();
     }
 
+    public static void sync(Realm realm, Contact nc){
+        Contact oc = realm.where(Contact.class).equalTo("uuid", nc.getUuid()).findFirst();
+        if(oc != null) oc.sync(nc);
+        else {
+            realm.beginTransaction();
+            realm.copyToRealm(nc);
+            realm.commitTransaction();
+        }
+    }
+
+    public static void sync(Realm realm, List<Contact> nc){
+        for(Contact c : nc) sync(realm, c);
+    }
+
     public void sync(Contact contact){
         if(lastModifiedFirstName.before(contact.getLastModifiedFirstName())){
             firstName = contact.getFirstName();
@@ -220,6 +239,51 @@ public class Contact extends RealmObject{
         Contact r = realm.createObject(Contact.class);
         r.setUuid(UUID.randomUUID().toString());
         realm.commitTransaction();
+        return r;
+    }
+
+    public static Contact findByName(Realm realm, String firstName, String middleName, String lastName){
+        RealmQuery<Contact> rq = realm.where(Contact.class);
+        if(firstName != null) rq.equalTo("firstName", firstName);
+        if(middleName != null) rq.equalTo("middleName", middleName);
+        if(lastName != null) rq.equalTo("lastName", lastName);
+        return rq.findFirst();
+    }
+
+    public static Contact convert(Realm realm, com.github.tamir7.contacts.Contact contact){
+        Contact c = findByNameOrCreate(realm, contact);
+        List<Address> addresses = Address.convert(realm, contact.getAddresses());
+        List<EmailAddress> emailAddresses = EmailAddress.convert(realm, contact.getEmails());
+        List<PhoneNumber> phoneNumbers = PhoneNumber.convert(realm, contact.getPhoneNumbers());
+        Note note = Note.convert(realm, contact.getNote());
+
+        realm.beginTransaction();
+
+        if(contact.getBirthday() != null) c.setBirthDate(contact.getBirthday().toString());
+        for(Address a : addresses) c.getAddresses().add(a);
+        for(EmailAddress e : emailAddresses) c.getEmailAddresses().add(e);
+        for(PhoneNumber p : phoneNumbers) c.getPhoneNumbers().add(p);
+        c.getNotes().add(note);
+
+        realm.commitTransaction();
+        return c;
+    }
+
+    public static Contact findByNameOrCreate(Realm realm, com.github.tamir7.contacts.Contact contact){
+        Contact c = findByName(realm, contact.getGivenName(), null, contact.getFamilyName());
+        if(c == null) {
+            c = Contact.create(realm);
+            realm.beginTransaction();
+            c.setFirstName(contact.getGivenName());
+            c.setLastName(contact.getFamilyName());
+            realm.commitTransaction();
+        }
+        return c;
+    }
+
+    public static List<Contact> convert(Realm realm, List<com.github.tamir7.contacts.Contact> contacts){
+        List<Contact> r = new ArrayList<>();
+        for(com.github.tamir7.contacts.Contact c : contacts) r.add(convert(realm, c));
         return r;
     }
 }

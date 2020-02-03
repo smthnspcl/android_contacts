@@ -1,17 +1,18 @@
 package io.eberlein.contacts.viewholders;
 
+import android.util.Log;
 import android.view.View;
 
 import org.greenrobot.eventbus.EventBus;
 
 import butterknife.OnClick;
 import io.eberlein.contacts.R;
-import io.eberlein.contacts.dialogs.DialogChooseNumber;
 import io.eberlein.contacts.objects.Contact;
 import io.eberlein.contacts.objects.events.EventCall;
 import io.eberlein.contacts.objects.events.EventDeleteContact;
 import io.eberlein.contacts.objects.events.EventSelectedContact;
 import io.eberlein.contacts.objects.events.EventSms;
+
 
 public class VHContact extends VH<Contact> {
     @OnClick(R.id.btn_one)
@@ -49,6 +50,7 @@ public class VHContact extends VH<Contact> {
 
     @Override
     public void onOpenExtraMenu() {
+        Log.d("onExtraMenuOpen", "yup");
         one.setVisibility(View.GONE);
         two.setVisibility(View.GONE);
     }

@@ -1,6 +1,10 @@
 package io.eberlein.contacts.objects;
 
+import com.github.tamir7.contacts.Email;
+
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import io.realm.Realm;
@@ -62,6 +66,28 @@ public class EmailAddress extends RealmObject {
         EmailAddress r = realm.createObject(EmailAddress.class);
         r.setUuid(UUID.randomUUID().toString());
         realm.commitTransaction();
+        return r;
+    }
+
+    public static EmailAddress findByEmail(Realm realm, String email){
+        return realm.where(EmailAddress.class).equalTo("email", email).findFirst();
+    }
+
+    public static EmailAddress convert(Realm realm, Email email){
+        EmailAddress r = findByEmail(realm, email.getAddress());
+        if(r == null) {
+            r = EmailAddress.create(realm);
+            realm.beginTransaction();
+            r.setEmail(email.getAddress());
+            r.setName(email.getLabel());
+            realm.commitTransaction();
+        }
+        return r;
+    }
+
+    public static List<EmailAddress> convert(Realm realm, List<Email> emails){
+        List<EmailAddress> r = new ArrayList<>();
+        for(Email e : emails) r.add(convert(realm, e));
         return r;
     }
 }

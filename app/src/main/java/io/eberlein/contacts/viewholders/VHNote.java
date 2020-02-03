@@ -15,7 +15,7 @@ public class VHNote extends VH<Note> {
 
     @Override
     public void onSetObject() {
-        super.onSetObject(); // todo
+        left_middle.setText(object.getName());
     }
 
     @Override

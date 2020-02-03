@@ -16,7 +16,7 @@ import io.eberlein.contacts.R;
 import io.eberlein.contacts.interfaces.VHInterface;
 
 
-public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
+public abstract class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
     T object;
     private boolean extraMenuOpen = false;
 
@@ -30,28 +30,6 @@ public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
     @BindView(R.id.tv_right_up) TextView right_up;
     @BindView(R.id.tv_right_middle) TextView right_middle;
     @BindView(R.id.tv_right_bottom) TextView right_bottom;
-
-    public void onSelected(){
-
-    }
-
-    public void onEdit(){
-
-    }
-
-    public void onDelete(){
-
-    }
-
-    @Override
-    public void onOpenExtraMenu() {
-
-    }
-
-    @Override
-    public void onCloseExtraMenu() {
-
-    }
 
     @OnClick
     void onClick(){
@@ -98,7 +76,17 @@ public class VH<T> extends RecyclerView.ViewHolder implements VHInterface {
         two.setVisibility(View.GONE);
     }
 
-    public void onSetObject(){ }
+    @Override
+    public void onCloseExtraMenu() {
+        delete.setVisibility(View.GONE);
+        edit.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onOpenExtraMenu() {
+        delete.setVisibility(View.GONE);
+        edit.setVisibility(View.GONE);
+    }
 
     public VH(View v){
         super(v);

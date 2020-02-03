@@ -7,7 +7,7 @@
     <string name="cancel">abbruch</string>
     <string name="choose_number">nummer wählen</string>
     <string name="city">stadt</string>
-    <string name="contact_app">system app</string>
+    <string name="contacts">kontakte</string>
     <string name="could_not_create_server">server konnte nicht erstellt werden</string>
     <string name="created_server">server erstellt</string>
     <string name="csv_file">csv datei</string>
@@ -52,4 +52,5 @@
     <string name="unable_sync_contacts">ohne bluetooth wirst du nicht in der lage sein deine kontakte zu synchronisieren</string>
     <string name="vcf_file">vcf datei</string>
     <string name="warning">achtung!</string>
+    <string name="permission_not_granted">berechtigung nicht erteilt</string>
 </resources>

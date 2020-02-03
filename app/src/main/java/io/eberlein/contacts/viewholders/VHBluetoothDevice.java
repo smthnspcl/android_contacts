@@ -19,6 +19,16 @@ public class VHBluetoothDevice extends VH<BluetoothDevice> {
     }
 
     @Override
+    public void onEdit() {
+
+    }
+
+    @Override
+    public void onDelete() {
+
+    }
+
+    @Override
     public void onOpenExtraMenu() {
         delete.setVisibility(View.GONE);
         edit.setVisibility(View.GONE);
