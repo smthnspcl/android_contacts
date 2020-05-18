@@ -33,16 +33,11 @@ dependencies {
     testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-
     implementation 'com.github.smthnspcl:abt:727cc0a1c7'
     implementation 'com.github.smthnspcl:contacts:adbab33548'
-
     implementation 'com.jakewharton:butterknife:10.2.1'
     annotationProcessor 'com.jakewharton:butterknife-compiler:10.2.1'
-
     implementation 'com.blankj:utilcodex:1.26.0'
-
     implementation 'io.realm:android-adapters:3.1.0'
-
     implementation 'org.greenrobot:eventbus:3.1.1'
 }
