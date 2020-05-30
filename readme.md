@@ -1,5 +1,5 @@
 ### contacts
-[![Build Status](http://build.eberlein.io:8080/job/android_contacts/badge/icon)](http://build.eberlein.io:8080/job/android_contacts/)
+[![Build Status](https://build.eberlein.io/buildStatus/icon?job=android_contacts)](https://build.eberlein.io/job/android_contacts/)
 
 #### why?
 we wanted a contacts app with all the usual functions but proper encryption and synchronization
